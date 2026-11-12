@@ -3,3 +3,7 @@ packages:
   - "packages/*"
 
 engineStrict: true
+
+# esbuild ships prebuilt binaries as optional dependencies; its postinstall is not needed.
+allowBuilds:
+  esbuild: false
