@@ -5,6 +5,7 @@ import {
   ArrowLeftRightIcon,
   EyeIcon,
   EyeOffIcon,
+  FileSpreadsheetIcon,
   LandmarkIcon,
   LayoutDashboardIcon,
   MenuIcon,
@@ -27,6 +28,7 @@ const NAV = [
   { to: "/accounts", label: "Tài khoản", icon: LandmarkIcon },
   { to: "/people", label: "Công nợ", icon: UsersIcon },
   { to: "/categories", label: "Danh mục & luật", icon: TagsIcon },
+  { to: "/import", label: "Import Excel", icon: FileSpreadsheetIcon },
   { to: "/settings", label: "Cài đặt", icon: SettingsIcon },
 ] as const;
 
