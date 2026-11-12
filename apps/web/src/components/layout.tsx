@@ -11,6 +11,7 @@ import {
   PlusIcon,
   SearchIcon,
   SettingsIcon,
+  TagsIcon,
   UsersIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -25,6 +26,7 @@ const NAV = [
   { to: "/transactions", label: "Giao dịch", icon: ArrowLeftRightIcon },
   { to: "/accounts", label: "Tài khoản", icon: LandmarkIcon },
   { to: "/people", label: "Công nợ", icon: UsersIcon },
+  { to: "/categories", label: "Danh mục & luật", icon: TagsIcon },
   { to: "/settings", label: "Cài đặt", icon: SettingsIcon },
 ] as const;
 

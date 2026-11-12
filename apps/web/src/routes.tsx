@@ -18,6 +18,7 @@ const AccountDetailPage = lazyRouteComponent(
   "AccountDetailPage",
 );
 const PeoplePage = lazyRouteComponent(() => import("./pages/people"), "PeoplePage");
+const CategoriesPage = lazyRouteComponent(() => import("./pages/categories"), "CategoriesPage");
 const SettingsPage = lazyRouteComponent(() => import("./pages/settings"), "SettingsPage");
 
 const month = z
@@ -63,6 +64,12 @@ const peopleRoute = createRoute({
   path: "/people",
   component: PeoplePage,
 });
+const categoriesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/categories",
+  validateSearch: z.object({ tab: z.enum(["tree", "rules"]).optional().catch(undefined) }),
+  component: CategoriesPage,
+});
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
@@ -75,6 +82,7 @@ const routeTree = rootRoute.addChildren([
   accountsRoute,
   accountDetailRoute,
   peopleRoute,
+  categoriesRoute,
   settingsRoute,
 ]);
 
