@@ -18,12 +18,13 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
+  linkButtonClass,
   MoneyText,
   ShareBars,
   Skeleton,
 } from "@even/ui";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { CircleAlertIcon, PlusIcon } from "lucide-react";
+import { CircleAlertIcon, FileSpreadsheetIcon, PlusIcon } from "lucide-react";
 import { useMemo } from "react";
 
 import { MonthPicker } from "../components/month-picker";
@@ -165,7 +166,7 @@ export function DashboardPage() {
         <Card className="mb-6">
           <EmptyState
             title="Bắt đầu sổ tài chính của bạn"
-            description="Thêm tài khoản và giao dịch đầu tiên, hoặc tải dữ liệu demo trong Cài đặt."
+            description="Thêm tài khoản và giao dịch đầu tiên, import file Excel cũ, hoặc tải dữ liệu demo trong Cài đặt."
             action={
               <div className="flex flex-wrap justify-center gap-2">
                 <Button
@@ -176,6 +177,9 @@ export function DashboardPage() {
                 >
                   <PlusIcon /> Thêm giao dịch
                 </Button>
+                <Link to="/import" className={linkButtonClass()}>
+                  <FileSpreadsheetIcon /> Import Excel
+                </Link>
               </div>
             }
           />

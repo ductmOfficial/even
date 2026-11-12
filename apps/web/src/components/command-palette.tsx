@@ -12,6 +12,7 @@ import {
   ArrowLeftRightIcon,
   CircleAlertIcon,
   EyeIcon,
+  FileSpreadsheetIcon,
   LandmarkIcon,
   LayoutDashboardIcon,
   MoonIcon,
@@ -82,6 +83,7 @@ export function CommandPalette() {
               ["/accounts", "Tài khoản", LandmarkIcon],
               ["/people", "Công nợ", UsersIcon],
               ["/categories", "Danh mục & luật", TagsIcon],
+              ["/import", "Import Excel", FileSpreadsheetIcon],
               ["/settings", "Cài đặt", SettingsIcon],
             ] as const
           ).map(([to, label, Icon]) => (

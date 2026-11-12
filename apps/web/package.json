@@ -16,6 +16,7 @@
     "@electric-sql/pglite": "^0.5.15",
     "@even/db": "workspace:*",
     "@even/domain": "workspace:*",
+    "@even/parsers": "workspace:*",
     "@even/ui": "workspace:*",
     "@hookform/resolvers": "^7.0.3",
     "@tanstack/react-query": "^5.107.1",
