@@ -13,6 +13,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
+    "e2e": "pnpm --filter @even/web e2e",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
