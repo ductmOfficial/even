@@ -1,0 +1,163 @@
+/*
+ * Even's theme on Sen UI. The app imports it after Tailwind and Sen UI, and lists this package as
+ * a Tailwind source so the component classes are generated:
+ *
+ *   @layer theme, base, sen, components, utilities;
+ *   @import "tailwindcss";
+ *   @import "@ductmofficial/sen-ui/styles.css";
+ *   @import "@even/ui/styles.css";
+ *   @source "<path to>/packages/ui/src";
+ *
+ * Sen UI components read the --sen-* tokens set here. Tokens Sen UI does not have (money colors,
+ * chart colors, the page canvas) are --even-*. Both are unlayered, so they override Sen UI's
+ * defaults, and every text color meets WCAG 2.2 AA (4.5:1) on the canvas and on cards.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --sen-color-bg: #ffffff;
+  --sen-color-surface: #f1f5f4;
+  --sen-color-surface-hover: #e2e8e6;
+  --sen-color-fg: #172026;
+  --sen-color-fg-muted: #4b5563;
+  --sen-color-border: #6b7280;
+  --sen-color-border-subtle: #e2e8f0;
+  --sen-color-accent: #047857;
+  --sen-color-accent-hover: #065f46;
+  --sen-color-accent-text: #047857;
+  --sen-color-on-accent: #ffffff;
+  --sen-color-danger: #b91c1c;
+  --sen-focus-ring-color: #047857;
+
+  --sen-radius-md: 0.5rem;
+  --sen-radius-lg: 0.75rem;
+  --sen-control-height-md: 2.25rem;
+
+  --even-color-canvas: #f8faf9;
+  --even-color-positive: #047857;
+  --even-color-negative: #b91c1c;
+  --even-color-warning: #b45309;
+  --even-color-chart-1: #059669;
+  --even-color-chart-2: #e11d48;
+  --even-color-chart-3: #2563eb;
+  --even-color-chart-4: #d97706;
+  --even-color-chart-5: #7c3aed;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sen-color-bg: #161b1f;
+    --sen-color-surface: #222a2f;
+    --sen-color-surface-hover: #2f3940;
+    --sen-color-fg: #f1f5f4;
+    --sen-color-fg-muted: #a3b1b8;
+    --sen-color-border: #7d8b93;
+    --sen-color-border-subtle: #2f3940;
+    --sen-color-accent: #047857;
+    --sen-color-accent-hover: #065f46;
+    --sen-color-accent-text: #6ee7b7;
+    --sen-color-on-accent: #ffffff;
+    --sen-color-danger: #fca5a5;
+    --sen-focus-ring-color: #34d399;
+
+    --even-color-canvas: #0f1417;
+    --even-color-positive: #6ee7b7;
+    --even-color-negative: #fca5a5;
+    --even-color-warning: #fcd34d;
+    --even-color-chart-1: #34d399;
+    --even-color-chart-2: #fb7185;
+    --even-color-chart-3: #60a5fa;
+    --even-color-chart-4: #fbbf24;
+    --even-color-chart-5: #a78bfa;
+  }
+}
+
+[data-theme="dark"] {
+  --sen-color-bg: #161b1f;
+  --sen-color-surface: #222a2f;
+  --sen-color-surface-hover: #2f3940;
+  --sen-color-fg: #f1f5f4;
+  --sen-color-fg-muted: #a3b1b8;
+  --sen-color-border: #7d8b93;
+  --sen-color-border-subtle: #2f3940;
+  --sen-color-accent: #047857;
+  --sen-color-accent-hover: #065f46;
+  --sen-color-accent-text: #6ee7b7;
+  --sen-color-on-accent: #ffffff;
+  --sen-color-danger: #fca5a5;
+  --sen-focus-ring-color: #34d399;
+
+  --even-color-canvas: #0f1417;
+  --even-color-positive: #6ee7b7;
+  --even-color-negative: #fca5a5;
+  --even-color-warning: #fcd34d;
+  --even-color-chart-1: #34d399;
+  --even-color-chart-2: #fb7185;
+  --even-color-chart-3: #60a5fa;
+  --even-color-chart-4: #fbbf24;
+  --even-color-chart-5: #a78bfa;
+}
+
+/* Tailwind utilities (bg-card, text-muted-foreground…) that follow the active theme. */
+@theme inline {
+  --color-background: var(--even-color-canvas);
+  --color-foreground: var(--sen-color-fg);
+  --color-card: var(--sen-color-bg);
+  --color-card-foreground: var(--sen-color-fg);
+  --color-popover: var(--sen-color-bg);
+  --color-popover-foreground: var(--sen-color-fg);
+  --color-muted: var(--sen-color-surface);
+  --color-muted-foreground: var(--sen-color-fg-muted);
+  --color-accent: var(--sen-color-surface);
+  --color-accent-foreground: var(--sen-color-fg);
+  --color-primary: var(--sen-color-accent-text);
+  --color-primary-foreground: var(--sen-color-on-accent);
+  --color-destructive: var(--sen-color-danger);
+  --color-positive: var(--even-color-positive);
+  --color-negative: var(--even-color-negative);
+  --color-warning: var(--even-color-warning);
+  --color-border: var(--sen-color-border-subtle);
+  --color-input: var(--sen-color-border);
+  --color-ring: var(--sen-focus-ring-color);
+  --color-chart-1: var(--even-color-chart-1);
+  --color-chart-2: var(--even-color-chart-2);
+  --color-chart-3: var(--even-color-chart-3);
+  --color-chart-4: var(--even-color-chart-4);
+  --color-chart-5: var(--even-color-chart-5);
+  --radius-sm: var(--sen-radius-sm);
+  --radius-md: var(--sen-radius-md);
+  --radius-lg: var(--sen-radius-lg);
+  --radius-xl: calc(var(--sen-radius-lg) + 0.25rem);
+  --font-sans: var(--sen-font-family);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background: var(--even-color-canvas);
+    color: var(--sen-color-fg);
+    font-family: var(--sen-font-family);
+    font-feature-settings: "tnum" 1;
+  }
+  :focus-visible {
+    outline: var(--sen-focus-ring-width) solid var(--sen-focus-ring-color);
+    outline-offset: var(--sen-focus-ring-offset);
+  }
+}
+
+/* A wider Sen UI dialog: <Dialog className="even-dialog-wide">. */
+[class*="sen-modal"]:has(> .even-dialog-wide) {
+  inline-size: min(42rem, 100%);
+}
+
+/* Privacy mode: blur every amount until hovered or focused. */
+[data-privacy="on"] [data-money] {
+  filter: blur(6px);
+  transition: filter 120ms;
+}
+[data-privacy="on"] [data-money]:hover,
+[data-privacy="on"] :focus-within > [data-money] {
+  filter: none;
+}

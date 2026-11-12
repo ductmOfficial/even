@@ -1,0 +1,8 @@
+/* Sen UI sits above Tailwind's base styles and below its utilities. */
+@layer theme, base, sen, components, utilities;
+
+@import "tailwindcss";
+@import "@ductmofficial/sen-ui/styles.css";
+@import "@even/ui/styles.css";
+
+@source "../../../packages/ui/src";
