@@ -1,0 +1,9 @@
+/* Sen UI sits above Tailwind's base styles and below its utilities, so a utility class on a
+   Sen UI component still wins. Declared first: the first statement fixes the layer order. */
+@layer theme, base, sen, components, utilities;
+
+@import "tailwindcss";
+@import "@ductmofficial/sen-ui/styles.css";
+@import "@even/ui/styles.css";
+
+@source "../../../packages/ui/src";

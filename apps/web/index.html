@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Even · Sổ tài chính cá nhân</title>
+    <script>
+      // Apply the saved theme before the first paint, so a dark page never flashes light.
+      try {
+        const saved = JSON.parse(localStorage.getItem("even:prefs") ?? "{}").state ?? {};
+        const dark =
+          saved.theme === "dark" ||
+          (saved.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      } catch {
+        // Storage can be unavailable; the stylesheet then follows the system theme.
+      }
+    </script>
+  </head>
+  <body class="antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
