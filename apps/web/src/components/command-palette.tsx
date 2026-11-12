@@ -18,6 +18,7 @@ import {
   PlusIcon,
   SettingsIcon,
   SunIcon,
+  TagsIcon,
   UsersIcon,
 } from "lucide-react";
 
@@ -80,6 +81,7 @@ export function CommandPalette() {
               ["/transactions", "Giao dịch", ArrowLeftRightIcon],
               ["/accounts", "Tài khoản", LandmarkIcon],
               ["/people", "Công nợ", UsersIcon],
+              ["/categories", "Danh mục & luật", TagsIcon],
               ["/settings", "Cài đặt", SettingsIcon],
             ] as const
           ).map(([to, label, Icon]) => (
