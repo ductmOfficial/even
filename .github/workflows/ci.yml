@@ -65,3 +65,48 @@ jobs:
 
       - name: Lint, typecheck, test, build
         run: pnpm turbo run lint typecheck test build
+
+  browser:
+    name: Browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The runner image ships Google Chrome; using it skips the browser download and the
+      # system packages from apt. Playwright reads CHROME_PATH (apps/web/playwright.config.ts).
+      - name: Use the runner's Chrome
+        run: |
+          chrome="$(command -v google-chrome || command -v google-chrome-stable || true)"
+          if [ -n "$chrome" ]; then
+            echo "CHROME_PATH=$chrome" >> "$GITHUB_ENV"
+            "$chrome" --version
+          else
+            echo "No Chrome on the runner; installing Playwright's Chromium."
+            pnpm --filter @even/web exec playwright install --with-deps chromium
+          fi
+
+      - name: End-to-end and accessibility
+        run: pnpm --filter @even/web e2e
+
+      - name: Upload the report on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

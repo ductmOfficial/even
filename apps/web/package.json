@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@ductmofficial/sen-ui": "^0.5.0",
@@ -31,6 +32,9 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@e965/xlsx": "^0.20.3",
+    "@playwright/test": "^1.65.0",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@tailwindcss/vite": "^4.3.5",
@@ -39,6 +43,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
     "eslint": "^10.13.0",
+    "globals": "^17.13.0",
     "jsdom": "^31.0.0",
     "tailwindcss": "^4.3.5",
     "typescript": "~6.0.3",
