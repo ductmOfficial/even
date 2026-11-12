@@ -1,5 +1,5 @@
 {
-  "name": "ductran-starter",
+  "name": "even",
   "private": true,
   "packageManager": "pnpm@12.14.0",
   "engines": {
@@ -14,11 +14,6 @@
     "test:coverage": "turbo run test:coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:up": "docker compose up --detach --wait",
-    "db:down": "docker compose down",
-    "db:reset": "docker compose down --volumes",
-    "db:logs": "docker compose logs --follow db",
-    "db:psql": "docker compose exec db psql",
     "prepare": "husky"
   },
   "devDependencies": {

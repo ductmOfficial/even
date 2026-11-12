@@ -3,11 +3,12 @@ node_modules/
 
 # Build output & caches
 dist/
-.next/
-next-env.d.ts
 coverage/
 .turbo/
 *.tsbuildinfo
+storybook-static/
+playwright-report/
+test-results/
 
 # Env files (commit only the example)
 .env
@@ -17,6 +18,12 @@ coverage/
 # OS / editor / logs
 .DS_Store
 *.log
+
+# Never commit real financial data
+*.xlsx
+*.xls
+*.csv
+!**/fixtures/**
 
 # Local-only Vietnamese progress notes
 PROGRESS.vi.md
