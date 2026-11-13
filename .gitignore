@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output & caches
+dist/
+.next/
+next-env.d.ts
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# Env files (commit only the example)
+.env
+.env.*
+!.env.example
+
+# OS / editor / logs
+.DS_Store
+*.log
+
+# Local-only Vietnamese progress notes
+PROGRESS.vi.md

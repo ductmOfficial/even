@@ -1,0 +1,31 @@
+version: 2
+updates:
+  # Actions are pinned to commit SHAs; Dependabot proposes new SHAs with the version comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    open-pull-requests-limit: 5
+    ignore:
+      # typescript-eslint supports TypeScript <6.1.0 only.
+      - dependency-name: "typescript"
+        versions: [">=6.1.0"]
+      # Types follow the Node runtime (engines: ^24); lift when moving to Node 26.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
