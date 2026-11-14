@@ -52,6 +52,8 @@ export interface AccountInput {
   type: AccountType;
   currency?: Currency;
   institution?: string | null;
+  /** Account or card account number as printed on statements. */
+  number?: string | null;
   last4?: string | null;
   aliases?: string[];
   color?: string | null;
@@ -76,6 +78,7 @@ export async function createAccount(db: Db, input: CreateAccountInput): Promise<
       type: input.type,
       currency,
       institution: input.institution ?? null,
+      number: input.number?.trim() ? input.number.trim() : null,
       last4: input.last4?.trim() ? input.last4.trim() : null,
       aliases: input.aliases ?? [],
       color: input.color ?? null,

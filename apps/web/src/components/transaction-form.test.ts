@@ -22,6 +22,7 @@ const account = (
   type,
   currency,
   institution: null,
+  number: null,
   last4: null,
   aliases: [],
   color: null,
