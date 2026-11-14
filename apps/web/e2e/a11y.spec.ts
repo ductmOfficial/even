@@ -10,6 +10,7 @@ const pages = [
   "/categories",
   "/categories?tab=rules",
   "/import",
+  "/reconcile",
   "/settings",
 ];
 

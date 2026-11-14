@@ -1,12 +1,15 @@
-import { normalizeText } from "@even/domain";
+import { normalizeText, type TransactionDraft } from "@even/domain";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { logAudit } from "./audit";
 import { newId, type Db, type DbOrTx } from "./client";
+import { insertTransaction } from "./transactions";
 import {
   accounts,
+  postings,
   statementLines,
   statements,
+  transactions,
   type Account,
   type Statement,
   type StatementLineRow,
@@ -221,4 +224,91 @@ export async function deleteStatement(db: Db, id: string): Promise<void> {
       to: row.periodTo,
     });
   });
+}
+
+/** Net movement of each transaction on one account, dated within a range. */
+export async function accountMovements(
+  db: DbOrTx,
+  filter: { accountId: string; from: string; to: string },
+): Promise<{ transactionId: string; date: string; amount: number; description: string }[]> {
+  return db
+    .select({
+      transactionId: transactions.id,
+      date: transactions.date,
+      amount: sql<number>`sum(${postings.amount})::bigint`.mapWith(Number),
+      description: transactions.description,
+    })
+    .from(postings)
+    .innerJoin(transactions, eq(postings.transactionId, transactions.id))
+    .where(
+      and(
+        eq(postings.accountId, filter.accountId),
+        sql`${transactions.date} >= ${filter.from}`,
+        sql`${transactions.date} <= ${filter.to}`,
+      ),
+    )
+    .groupBy(transactions.id, transactions.date, transactions.description)
+    .orderBy(asc(transactions.date));
+}
+
+export interface ReconcileChanges {
+  /** Statement lines an existing transaction already covers. */
+  matches: readonly { lineId: string; transactionId: string }[];
+  /** New transactions, each from one line, or from the two sides of a transfer. */
+  create: readonly { lineIds: readonly string[]; draft: TransactionDraft }[];
+  ignore: readonly string[];
+}
+
+/** Applies a reconciliation in one database transaction; period locks still apply. */
+export async function applyReconciliation(db: Db, changes: ReconcileChanges): Promise<number> {
+  return db.transaction(async (tx) => {
+    for (const m of changes.matches) {
+      await setLineStatus(tx, [m.lineId], "matched", m.transactionId);
+    }
+    for (const c of changes.create) {
+      const id = await insertTransaction(tx, c.draft, { source: "statement" });
+      await setLineStatus(tx, c.lineIds, "created", id);
+    }
+    await setLineStatus(tx, changes.ignore, "ignored");
+    return changes.create.length;
+  });
+}
+
+/** Lines of every account still marked new, dated within a range. */
+export async function listNewStatementLines(
+  db: DbOrTx,
+  range: { from: string; to: string },
+): Promise<StatementLineRow[]> {
+  return db
+    .select()
+    .from(statementLines)
+    .where(
+      and(
+        eq(statementLines.status, "new"),
+        sql`${statementLines.date} >= ${range.from}`,
+        sql`${statementLines.date} <= ${range.to}`,
+      ),
+    )
+    .orderBy(asc(statementLines.date));
+}
+
+/** How many lines of each statement are new, matched, created or ignored. */
+export async function statementProgress(
+  db: DbOrTx,
+): Promise<Map<string, Record<StatementLineRow["status"], number>>> {
+  const rows = await db
+    .select({
+      statementId: statementLines.statementId,
+      status: statementLines.status,
+      n: sql<number>`count(*)::int`.mapWith(Number),
+    })
+    .from(statementLines)
+    .groupBy(statementLines.statementId, statementLines.status);
+  const out = new Map<string, Record<StatementLineRow["status"], number>>();
+  for (const r of rows) {
+    const counts = out.get(r.statementId) ?? { new: 0, matched: 0, created: 0, ignored: 0 };
+    counts[r.status] = r.n;
+    out.set(r.statementId, counts);
+  }
+  return out;
 }
