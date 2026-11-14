@@ -7,6 +7,8 @@ import { exportBackup, restoreBackup } from "./backup";
 import type { Db } from "./client";
 import { listPeriods, lockedThrough, lockPeriod, PeriodLockedError, unlockPeriod } from "./periods";
 import {
+  accountMovements,
+  applyReconciliation,
   deleteStatement,
   findAccountByNumber,
   getStatement,
@@ -248,5 +250,53 @@ describe("backup", () => {
     delete v1.data.auditLog;
     await restoreBackup(db, v1);
     expect(await listStatementLines(db, { accountId })).toHaveLength(0);
+  });
+});
+
+describe("applyReconciliation", () => {
+  it("records matches, creates transactions and ignores lines", async () => {
+    const bank = await createAccount(db, { name: "Bank", type: "bank" });
+    const card = await createAccount(db, { name: "Card", type: "credit_card" });
+    const coffee = await createTransaction(db, expense(bank, "2026-09-02", 50_000));
+    const { statementId } = await saveStatement(db, {
+      accountId: bank,
+      statement: statement("2026-09-01", "2026-09-30", [
+        line("2026-09-03", -50_000, { reference: "FT1" }),
+        line("2026-09-10", -65_000, { reference: "FT2" }),
+        line("2026-09-11", -1, { reference: "FT3" }),
+      ]),
+    });
+    const [l1, l2, l3] = (await getStatement(db, statementId))?.lines ?? [];
+    expect(
+      await accountMovements(db, { accountId: bank, from: "2026-09-01", to: "2026-09-30" }),
+    ).toEqual([
+      { transactionId: coffee, date: "2026-09-02", amount: -50_000, description: "Coffee" },
+    ]);
+    const created = await applyReconciliation(db, {
+      matches: [{ lineId: l1?.id ?? "", transactionId: coffee }],
+      create: [{ lineIds: [l2?.id ?? ""], draft: expense(bank, "2026-09-10", 65_000) }],
+      ignore: [l3?.id ?? ""],
+    });
+    expect(created).toBe(1);
+    const lines = (await getStatement(db, statementId))?.lines ?? [];
+    expect(lines.map((l) => l.status)).toEqual(["matched", "created", "ignored"]);
+    expect((await getTransaction(db, lines[1]?.transactionId ?? ""))?.source).toBe("statement");
+
+    // Locks apply: nothing is half-applied when a draft falls in a locked period.
+    await lockPeriod(db, {
+      accountId: card,
+      from: "2026-09-01",
+      to: "2026-09-30",
+      statementBalance: 0,
+      ledgerBalance: 0,
+    });
+    await expect(
+      applyReconciliation(db, {
+        matches: [],
+        create: [{ lineIds: [l3?.id ?? ""], draft: expense(card, "2026-09-11", 1) }],
+        ignore: [],
+      }),
+    ).rejects.toThrow(PeriodLockedError);
+    expect((await getStatement(db, statementId))?.lines[2]?.status).toBe("ignored");
   });
 });

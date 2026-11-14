@@ -17,6 +17,7 @@ import {
   LayoutDashboardIcon,
   MoonIcon,
   PlusIcon,
+  ScaleIcon,
   SettingsIcon,
   SunIcon,
   TagsIcon,
@@ -83,6 +84,7 @@ export function CommandPalette() {
               ["/accounts", "Tài khoản", LandmarkIcon],
               ["/people", "Công nợ", UsersIcon],
               ["/categories", "Danh mục & luật", TagsIcon],
+              ["/reconcile", "Đối soát sao kê", ScaleIcon],
               ["/import", "Import Excel", FileSpreadsheetIcon],
               ["/settings", "Cài đặt", SettingsIcon],
             ] as const

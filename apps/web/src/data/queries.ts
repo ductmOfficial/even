@@ -1,5 +1,12 @@
 import {
   accountBalances,
+  accountMovements,
+  getStatement,
+  listNewStatementLines,
+  listPeriods,
+  listStatements,
+  statementProgress,
+  lockedThrough,
   categoryTotals,
   countNeedsReview,
   getFxRates,
@@ -15,7 +22,7 @@ import {
   type Range,
   type TransactionFilter,
 } from "@even/db";
-import { buildCategoryTree, categoryPath, flattenTree } from "@even/domain";
+import { addDays, buildCategoryTree, categoryPath, flattenTree } from "@even/domain";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -151,4 +158,56 @@ export function categoryOptions(
       group: n.category.kind === "income" ? "Thu nhập" : "Chi tiêu",
     };
   });
+}
+
+export function useStatements(accountId?: string) {
+  return useLedgerQuery(["statements", accountId], (db) => listStatements(db, accountId));
+}
+
+export function useStatement(id: string | undefined) {
+  return useQuery({
+    queryKey: [LEDGER_KEY, "statement", id],
+    queryFn: async () => (id ? ((await getStatement(await getDb(), id)) ?? null) : null),
+    enabled: Boolean(id),
+  });
+}
+
+export function usePeriods(accountId?: string) {
+  return useLedgerQuery(["periods", accountId], (db) => listPeriods(db, accountId));
+}
+
+/** Statement lines and ledger movements around a statement's period, for reconciliation. */
+export function useReconciliation(statementId: string | undefined) {
+  return useQuery({
+    queryKey: [LEDGER_KEY, "reconciliation", statementId],
+    enabled: Boolean(statementId),
+    queryFn: async () => {
+      const db = await getDb();
+      const statement = statementId ? await getStatement(db, statementId) : undefined;
+      if (!statement) return null;
+      const window = {
+        accountId: statement.accountId,
+        from: addDays(statement.periodFrom, -3),
+        to: addDays(statement.periodTo, 3),
+      };
+      const [movements, balances, locks, linesAround] = await Promise.all([
+        accountMovements(db, window),
+        accountBalances(db, statement.periodTo),
+        lockedThrough(db, [statement.accountId]),
+        // New lines of every account in the window, to find the other side of transfers.
+        listNewStatementLines(db, { from: window.from, to: window.to }),
+      ]);
+      return {
+        statement,
+        movements,
+        ledgerBalance: balances.find((b) => b.accountId === statement.accountId)?.balance ?? 0,
+        lockedThrough: locks.get(statement.accountId) ?? null,
+        otherNewLines: linesAround.filter((l) => l.accountId !== statement.accountId),
+      };
+    },
+  });
+}
+
+export function useStatementProgress() {
+  return useLedgerQuery(["statement-progress"], (db) => statementProgress(db));
 }
