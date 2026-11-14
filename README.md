@@ -4,7 +4,7 @@
 
 A local-first personal finance ledger for Vietnamese households: double-entry bookkeeping, multiple currencies, shared expenses and debts, and an import for a hand-kept Excel workbook. The whole database (Postgres, through PGlite/WASM) runs in a Web Worker in the browser, so the app works offline and financial data never leaves the device.
 
-> Status: **P0 (foundation) and P1 (replace the spreadsheet) done.** See [PROGRESS.md](PROGRESS.md).
+> Status: **P0 (foundation) and P1 (replace the spreadsheet) done.** Runs locally; not deployed yet. See [PROGRESS.md](PROGRESS.md).
 
 ## Highlights
 
@@ -44,29 +44,100 @@ A local-first personal finance ledger for Vietnamese households: double-entry bo
 
 Internal packages are consumed as TypeScript source ([ADR 0005](docs/adr/0005-internal-packages-as-source.md)), so there is no build step between them.
 
-## Getting started
+## Setup
 
-Requirements: Node.js 24 and pnpm 12 (see `.nvmrc` and `packageManager`).
+### 1. Prerequisites
+
+| Tool                      | Version                    | Needed for                 | Install                                                                                      |
+| ------------------------- | -------------------------- | -------------------------- | -------------------------------------------------------------------------------------------- |
+| Node.js                   | 24 (`.nvmrc`)              | everything                 | `nvm install && nvm use` (or `fnm use`)                                                      |
+| pnpm                      | 12.14.0 (`packageManager`) | everything                 | `corepack enable` (or `npm install -g pnpm@12.14.0`)                                         |
+| Git                       | any recent                 | everything                 |                                                                                              |
+| Chromium or Google Chrome | any recent                 | browser tests (`e2e`) only | `pnpm --filter @even/web exec playwright install chromium`, or point `CHROME_PATH` at Chrome |
+
+`pnpm install` refuses other Node.js majors (`engineStrict`). Corepack ships with Node.js 24: after `corepack enable`, the first `pnpm` command downloads the exact version from `packageManager` (answer `Y` if it asks).
+
+There is nothing else to install: no database server (Postgres runs in the browser through PGlite), no API keys and no environment variables. The only variable the repository reads is `CHROME_PATH`, optional, for the browser tests.
+
+### 2. Clone and install
 
 ```bash
-pnpm install
+git clone https://github.com/ductmOfficial/even.git
+cd even
+nvm use
+corepack enable
+pnpm install          # also installs the commit-msg hook
+```
+
+## Running
+
+```bash
 pnpm dev            # app on http://localhost:3500
 pnpm storybook      # @even/ui on http://localhost:3502
 ```
 
-Open **Cài đặt → Tạo dữ liệu demo** to explore with fictional data, or **Import Excel** to bring in your own workbook.
+Open **Cài đặt → Tạo dữ liệu demo** to explore with fictional data, or **Import Excel** to bring in your own workbook. The database is created in the browser on first load and migrated there; there is no migrate or seed command to run.
 
-### Scripts
+To serve the production build:
+
+```bash
+pnpm build                          # the app and the static Storybook
+pnpm --filter @even/web preview     # http://localhost:3501
+```
+
+## Testing
+
+| Command                             | What it runs                                                                       |
+| ----------------------------------- | ---------------------------------------------------------------------------------- |
+| `pnpm test`                         | Unit and integration tests (Vitest), including the ledger on PGlite in Node        |
+| `pnpm test:coverage`                | The same with coverage                                                             |
+| `pnpm lint` / `pnpm typecheck`      | ESLint (warnings fail) and `tsc --noEmit` everywhere                               |
+| `pnpm format:check` / `pnpm format` | Prettier check / write                                                             |
+| `pnpm build`                        | Build the app and the static Storybook                                             |
+| `pnpm e2e`                          | Playwright and axe against the production build on port 3501 (the `Browser` check) |
+
+`pnpm e2e` builds the app and serves it on port 3501 by itself. It uses Playwright's Chromium, or the Chrome at `CHROME_PATH` when it is set:
+
+```bash
+pnpm --filter @even/web exec playwright install chromium   # the first time
+pnpm e2e
+```
+
+To run what CI runs before opening a pull request (`Verify`, then `Browser`):
+
+```bash
+pnpm install --frozen-lockfile
+pnpm format:check
+pnpm turbo run lint typecheck test build
+pnpm e2e
+```
+
+### All scripts
 
 | Command                                                | What it does                                                                       |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `pnpm dev`                                             | The app's Vite dev server on port 3500                                             |
+| `pnpm storybook`                                       | Storybook for `@even/ui` on port 3502                                              |
+| `pnpm build`                                           | Build the app and the static Storybook                                             |
 | `pnpm turbo run lint typecheck test build`             | Everything the `Verify` check runs                                                 |
 | `pnpm test`                                            | Unit and integration tests (Vitest)                                                |
 | `pnpm e2e`                                             | Playwright and axe against the production build on port 3501 (the `Browser` check) |
+| `pnpm --filter @even/web preview`                      | Serve the last production build on port 3501                                       |
 | `pnpm --filter @even/db db:generate`                   | Generate a SQL migration after editing `packages/db/src/schema.ts`                 |
 | `pnpm --filter @even/parsers check:legacy <file.xlsx>` | Dry-run an Excel import and print per-sheet totals and the category mapping        |
 
-`pnpm e2e` uses Playwright's Chromium (`pnpm --filter @even/web exec playwright install chromium` the first time), or the Chrome at `CHROME_PATH` when it is set.
+## Troubleshooting
+
+| Symptom                                                     | Fix                                                                                                                    |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install` fails with `ERR_PNPM_UNSUPPORTED_ENGINE`     | Wrong Node.js major: `nvm use` (Node.js 24), then install again                                                        |
+| `pnpm: command not found`, or a different pnpm version runs | `corepack enable`, then open a new terminal; `pnpm -v` should print `12.14.0`                                          |
+| `pnpm dev` stops with "Port 3500 is already in use"         | The ports are fixed (`strictPort`): stop the other process on 3500 (3501 for `preview` and `e2e`, 3502 for Storybook)  |
+| `pnpm e2e` cannot start its server                          | Port 3501 must be free; stop a `preview` you left running                                                              |
+| The browser tests cannot find a browser                     | `pnpm --filter @even/web exec playwright install chromium`, or set `CHROME_PATH`                                       |
+| The app shows old data after trying the demo                | Data lives in the browser's IndexedDB (`even`): clear the site data for `localhost:3500` to start empty                |
+| A machine with little memory kills the run (exit code 137)  | Run fewer tasks at once: `pnpm turbo run lint typecheck test build --concurrency=2`                                    |
+| The commit is rejected                                      | The hook enforces [Conventional Commits](https://www.conventionalcommits.org): `feat(web): …`, `fix(db): …`, `docs: …` |
 
 ## Privacy
 
