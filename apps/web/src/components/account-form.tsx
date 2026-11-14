@@ -17,6 +17,7 @@ const schema = z.object({
   currency: z.enum(["VND", "USD"]),
   institution: z.string(),
   last4: z.string().regex(/^\d{0,6}$/, "Chỉ gồm chữ số (tối đa 6)"),
+  number: z.string().regex(/^\d*$/, "Chỉ gồm chữ số"),
   aliases: z.string(),
   openingBalance: z.number().nullable(),
   openingDate: z.string(),
@@ -70,6 +71,7 @@ function AccountForm({
       currency: account?.currency ?? "VND",
       institution: account?.institution ?? "",
       last4: account?.last4 ?? "",
+      number: account?.number ?? "",
       aliases: account?.aliases.join(", ") ?? "",
       openingBalance: null,
       openingDate: todayIso(),
@@ -86,6 +88,7 @@ function AccountForm({
         currency: v.currency,
         institution: v.institution.trim() || null,
         last4: v.last4.trim() || null,
+        number: v.number.trim() || null,
         aliases: v.aliases
           .split(",")
           .map((s) => s.trim())
@@ -171,6 +174,13 @@ function AccountForm({
               {...register("last4")}
             />
           </div>
+          <TextField
+            label="Số tài khoản trên sao kê"
+            description="Để tự nhận sao kê của tài khoản này khi đối soát"
+            inputMode="numeric"
+            error={formState.errors.number?.message}
+            {...register("number")}
+          />
           <TextField
             label="Tên gọi tắt"
             description="Cách nhau bằng dấu phẩy, VD: credit, visa"

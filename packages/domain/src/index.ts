@@ -1,5 +1,6 @@
 export * from "./accounts";
 export * from "./categories";
+export * from "./credit-card";
 export * from "./ledger";
 export * from "./money";
 export * from "./period";

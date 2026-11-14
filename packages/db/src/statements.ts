@@ -312,3 +312,51 @@ export async function statementProgress(
   }
   return out;
 }
+
+/** The most recent statement of each account. */
+export async function latestStatements(db: DbOrTx): Promise<Map<string, Statement>> {
+  const rows = await db.select().from(statements).orderBy(desc(statements.periodTo));
+  const out = new Map<string, Statement>();
+  for (const r of rows) if (!out.has(r.accountId)) out.set(r.accountId, r);
+  return out;
+}
+
+/**
+ * Money paid into an account after a date (payments to a credit card), and cashback booked on
+ * it within a range.
+ */
+export async function cardActivity(
+  db: DbOrTx,
+  accountId: string,
+  range: { paidAfter: string; cashbackFrom: string; cashbackTo: string },
+): Promise<{ paid: number; cashback: number }> {
+  const [paid] = await db
+    .select({ n: sql<number>`coalesce(sum(${postings.amount}), 0)::bigint`.mapWith(Number) })
+    .from(postings)
+    .innerJoin(transactions, eq(postings.transactionId, transactions.id))
+    .where(
+      and(
+        eq(postings.accountId, accountId),
+        sql`${postings.amount} > 0`,
+        sql`${transactions.date} > ${range.paidAfter}`,
+        eq(transactions.kind, "transfer"),
+      ),
+    );
+  const onCard = db
+    .select({ id: postings.transactionId })
+    .from(postings)
+    .where(eq(postings.accountId, accountId));
+  const [cashback] = await db
+    .select({ n: sql<number>`coalesce(sum(-${postings.amount}), 0)::bigint`.mapWith(Number) })
+    .from(postings)
+    .innerJoin(transactions, eq(postings.transactionId, transactions.id))
+    .where(
+      and(
+        inArray(postings.transactionId, onCard),
+        eq(postings.categoryId, "income.cashback"),
+        sql`${transactions.date} >= ${range.cashbackFrom}`,
+        sql`${transactions.date} <= ${range.cashbackTo}`,
+      ),
+    );
+  return { paid: paid?.n ?? 0, cashback: cashback?.n ?? 0 };
+}

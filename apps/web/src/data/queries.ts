@@ -1,6 +1,8 @@
 import {
   accountBalances,
   accountMovements,
+  cardActivity,
+  latestStatements,
   getStatement,
   listNewStatementLines,
   listPeriods,
@@ -20,9 +22,18 @@ import {
   type Account,
   type Category,
   type Range,
+  type Statement,
   type TransactionFilter,
 } from "@even/db";
-import { addDays, buildCategoryTree, categoryPath, flattenTree } from "@even/domain";
+import {
+  addDays,
+  buildCategoryTree,
+  cardStatus,
+  categoryPath,
+  flattenTree,
+  todayIso,
+  type CardStatus,
+} from "@even/domain";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -210,4 +221,41 @@ export function useReconciliation(statementId: string | undefined) {
 
 export function useStatementProgress() {
   return useLedgerQuery(["statement-progress"], (db) => statementProgress(db));
+}
+
+export interface CardOverview {
+  accountId: string;
+  statement: Statement;
+  status: CardStatus;
+  cashback: number;
+}
+
+/** Each credit card with a statement: what is due, by when, and the limit in use. */
+export function useCards() {
+  return useLedgerQuery(["cards"], async (db) => {
+    const today = todayIso();
+    const [latest, balances, accounts] = await Promise.all([
+      latestStatements(db),
+      accountBalances(db),
+      listAccounts(db),
+    ]);
+    const cards: CardOverview[] = [];
+    for (const account of accounts) {
+      const statement = latest.get(account.id);
+      if (account.type !== "credit_card" || !statement) continue;
+      const activity = await cardActivity(db, account.id, {
+        paidAfter: statement.periodTo,
+        cashbackFrom: statement.periodFrom,
+        cashbackTo: statement.periodTo,
+      });
+      const balance = balances.find((b) => b.accountId === account.id)?.balance ?? 0;
+      cards.push({
+        accountId: account.id,
+        statement,
+        status: cardStatus(statement, balance, activity.paid, today),
+        cashback: activity.cashback,
+      });
+    }
+    return cards;
+  });
 }

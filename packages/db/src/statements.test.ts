@@ -1,4 +1,4 @@
-import { buildExpense } from "@even/domain";
+import { buildExpense, buildIncome, buildTransfer } from "@even/domain";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { accountBalances, createAccount } from "./accounts";
@@ -9,6 +9,8 @@ import { listPeriods, lockedThrough, lockPeriod, PeriodLockedError, unlockPeriod
 import {
   accountMovements,
   applyReconciliation,
+  cardActivity,
+  latestStatements,
   deleteStatement,
   findAccountByNumber,
   getStatement,
@@ -298,5 +300,47 @@ describe("applyReconciliation", () => {
       }),
     ).rejects.toThrow(PeriodLockedError);
     expect((await getStatement(db, statementId))?.lines[2]?.status).toBe("ignored");
+  });
+});
+
+describe("credit card activity", () => {
+  it("finds the latest statement, payments since it and cashback in the cycle", async () => {
+    const bank = await createAccount(db, { name: "Bank", type: "bank" });
+    const card = await createAccount(db, { name: "Card", type: "credit_card" });
+    for (const [from, to] of [
+      ["2026-08-19", "2026-09-18"],
+      ["2026-09-19", "2026-10-20"],
+    ] as const) {
+      await saveStatement(db, { accountId: card, statement: statement(from, to, []) });
+    }
+    expect((await latestStatements(db)).get(card)?.periodTo).toBe("2026-10-20");
+    await createTransaction(
+      db,
+      buildTransfer({
+        date: "2026-10-25",
+        description: "Pay card",
+        from: { accountId: bank, currency: "VND" },
+        to: { accountId: card, currency: "VND" },
+        amount: 300_000,
+      }),
+    );
+    await createTransaction(
+      db,
+      buildIncome({
+        date: "2026-10-01",
+        description: "Cashback",
+        accountId: card,
+        currency: "VND",
+        amount: 12_000,
+        categoryId: "income.cashback",
+      }),
+    );
+    expect(
+      await cardActivity(db, card, {
+        paidAfter: "2026-10-20",
+        cashbackFrom: "2026-09-19",
+        cashbackTo: "2026-10-20",
+      }),
+    ).toEqual({ paid: 300_000, cashback: 12_000 });
   });
 });

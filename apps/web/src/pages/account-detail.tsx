@@ -15,10 +15,11 @@ import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, PencilIcon, PlusIcon } 
 import { useMemo, useState } from "react";
 
 import { AccountDialog } from "../components/account-form";
+import { CardStatusPanel } from "../components/card-status";
 import { PageHeader } from "../components/page";
 import { TransactionTable } from "../components/transaction-table";
 import { useLedgerMutation } from "../data/mutate";
-import { useBalances, useLookups, useTransactions } from "../data/queries";
+import { useBalances, useCards, useLookups, useTransactions } from "../data/queries";
 import { useUi } from "../lib/store";
 import { toRow } from "../lib/transactions";
 
@@ -29,6 +30,8 @@ export function AccountDetailPage() {
   const lookups = useLookups();
   const balances = useBalances();
   const txs = useTransactions({ accountId });
+  const cards = useCards();
+  const card = cards.data?.find((c) => c.accountId === accountId);
   const openNew = useUi((s) => s.openNewTransaction);
   const [editing, setEditing] = useState(false);
   const account = lookups?.accountById.get(accountId);
@@ -99,6 +102,7 @@ export function AccountDetailPage() {
           </>
         }
       />
+      {card ? <CardStatusPanel card={card} /> : null}
       <Card className="mb-4 flex flex-wrap items-baseline gap-x-8 gap-y-2 p-4">
         <div>
           <div className="text-sm text-muted-foreground">

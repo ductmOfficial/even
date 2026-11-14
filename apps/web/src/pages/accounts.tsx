@@ -1,5 +1,5 @@
-import { ACCOUNT_TYPE_LABELS, toBase, type AccountType } from "@even/domain";
-import { Button } from "@ductmofficial/sen-ui";
+import { ACCOUNT_TYPE_LABELS, formatDate, toBase, todayIso, type AccountType } from "@even/domain";
+import { Button, TextField } from "@ductmofficial/sen-ui";
 import {
   Badge,
   buttonClass,
@@ -11,21 +11,29 @@ import {
   MoneyText,
   Skeleton,
 } from "@even/ui";
-import { Link } from "@tanstack/react-router";
+import { getRouteApi, Link } from "@tanstack/react-router";
 import { LandmarkIcon, PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { AccountDialog } from "../components/account-form";
 import { PageHeader } from "../components/page";
-import { useAccounts, useBalances, useFxRates, useNetWorth } from "../data/queries";
+import { DueBadge } from "../components/card-status";
+import { useAccounts, useBalances, useCards, useFxRates, useNetWorth } from "../data/queries";
+
+const route = getRouteApi("/accounts");
 
 export function AccountsPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [creating, setCreating] = useState(false);
   const accounts = useAccounts(true);
-  const balances = useBalances();
+  const search = route.useSearch();
+  const navigate = route.useNavigate();
+  // Balances as of the end of a past day, or today.
+  const asOf = search.asOf;
+  const balances = useBalances(asOf);
   const fx = useFxRates();
-  const worth = useNetWorth();
+  const worth = useNetWorth(asOf);
+  const cards = useCards();
 
   const accountList = accounts.data;
   const groups = useMemo(() => {
@@ -46,7 +54,7 @@ export function AccountsPage() {
         description={
           worth.data ? (
             <>
-              Tài sản ròng{" "}
+              {asOf ? `Tài sản ròng cuối ngày ${formatDate(asOf)}` : "Tài sản ròng"}{" "}
               <MoneyText amount={worth.data.total} className="font-medium text-foreground" /> · USD
               quy đổi theo tỷ giá {new Intl.NumberFormat("vi-VN").format(fx.data?.USD ?? 0)}
             </>
@@ -54,6 +62,16 @@ export function AccountsPage() {
         }
         actions={
           <>
+            <TextField
+              label="Số dư tại ngày"
+              type="date"
+              className="[&>:first-child]:text-xs [&>:first-child]:font-medium"
+              value={asOf ?? ""}
+              max={todayIso()}
+              onChange={(e) => {
+                void navigate({ search: { asOf: e.target.value || undefined } });
+              }}
+            />
             <Button
               variant="secondary"
               className={buttonClass({ tone: "ghost", size: "sm" })}
@@ -117,6 +135,12 @@ export function AccountsPage() {
                           </span>
                           <span className="flex items-center gap-2">
                             {a.archived ? <Badge>Lưu trữ</Badge> : null}
+                            {!asOf
+                              ? (() => {
+                                  const card = cards.data?.find((c) => c.accountId === a.id);
+                                  return card ? <DueBadge card={card} /> : null;
+                                })()
+                              : null}
                             <MoneyText
                               amount={b}
                               currency={a.currency}

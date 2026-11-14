@@ -54,6 +54,13 @@ const transactionsRoute = createRoute({
 const accountsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/accounts",
+  validateSearch: z.object({
+    asOf: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional()
+      .catch(undefined),
+  }),
   component: AccountsPage,
 });
 const accountDetailRoute = createRoute({
