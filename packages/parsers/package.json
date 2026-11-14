@@ -14,11 +14,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "check:legacy": "tsx scripts/check-legacy.ts"
+    "check:legacy": "tsx scripts/check-legacy.ts",
+    "check:statements": "tsx scripts/check-statements.ts"
   },
   "dependencies": {
     "@e965/xlsx": "^0.20.3",
-    "@even/domain": "workspace:*"
+    "@even/domain": "workspace:*",
+    "pdfjs-dist": "^5.7.284"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
@@ -26,9 +28,10 @@
     "@types/node": "^24.19.2",
     "@vitest/coverage-v8": "^5.0.5",
     "eslint": "^10.13.0",
+    "pdf-lib": "^1.17.1",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "vite": "^8.3.5",
-    "tsx": "^4.23.15",
     "vitest": "^5.0.5"
   }
 }

@@ -23,6 +23,7 @@ test-results/
 *.xlsx
 *.xls
 *.csv
+*.pdf
 !**/fixtures/**
 
 # Local-only Vietnamese progress notes
