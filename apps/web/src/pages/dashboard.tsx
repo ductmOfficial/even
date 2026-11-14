@@ -27,10 +27,12 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { CircleAlertIcon, FileSpreadsheetIcon, PlusIcon } from "lucide-react";
 import { useMemo } from "react";
 
+import { DueBadge } from "../components/card-status";
 import { MonthPicker } from "../components/month-picker";
 import { PageHeader, QueryError } from "../components/page";
 import {
   useBalances,
+  useCards,
   useCategoryTotals,
   useLookups,
   useMonthlyTotals,
@@ -89,6 +91,10 @@ export function DashboardPage() {
   const trend = useMonthlyTotals(trendRange);
   const balances = useBalances(asOf);
   const review = useNeedsReviewCount();
+  const cards = useCards();
+  const dueCards = (cards.data ?? []).filter(
+    (c) => c.status.state === "due" || c.status.state === "overdue",
+  );
   const openNew = useUi((s) => s.openNewTransaction);
 
   const monthTotals = trend.data?.find((t) => t.month === month);
@@ -160,6 +166,35 @@ export function DashboardPage() {
           </span>
           <span className="ml-auto font-medium text-primary">Duyệt ngay →</span>
         </Link>
+      ) : null}
+
+      {dueCards.length > 0 && lookups ? (
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>Thẻ tín dụng cần thanh toán</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y">
+              {dueCards.map((c) => (
+                <li key={c.accountId}>
+                  <Link
+                    to="/accounts/$accountId"
+                    params={{ accountId: c.accountId }}
+                    className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm hover:text-primary"
+                  >
+                    <span className="font-medium">
+                      {lookups.accountById.get(c.accountId)?.name}
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <MoneyText amount={c.status.remaining} className="font-medium" />
+                      <DueBadge card={c} />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       ) : null}
 
       {!hasData && lookups ? (
