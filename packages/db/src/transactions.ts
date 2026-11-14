@@ -15,6 +15,7 @@ import {
 } from "drizzle-orm";
 
 import { newId, type Db, type DbOrTx } from "./client";
+import { assertUnlocked, postingDates } from "./periods";
 import { postings, transactions, type PostingRow, type Transaction } from "./schema";
 
 export interface TransactionMeta {
@@ -42,13 +43,22 @@ async function insertPostings(db: DbOrTx, transactionId: string, draft: Transact
   );
 }
 
-/** Validates the double-entry invariant, then writes the transaction and its postings. */
+/** The accounts and date a draft touches, for period-lock checks. */
+function entriesOf(draft: TransactionDraft) {
+  return draft.postings.map((p) => ({ accountId: p.accountId, date: draft.date }));
+}
+
+/**
+ * Validates the double-entry invariant and the period locks, then writes the transaction and
+ * its postings.
+ */
 export async function insertTransaction(
   db: DbOrTx,
   draft: TransactionDraft,
   meta: TransactionMeta = {},
 ): Promise<string> {
   validateTransaction(draft);
+  await assertUnlocked(db, entriesOf(draft));
   const id = newId();
   await db.insert(transactions).values({
     id,
@@ -74,6 +84,10 @@ export async function insertTransactionsBatch(
   db: DbOrTx,
   items: readonly { draft: TransactionDraft; meta?: TransactionMeta }[],
 ): Promise<string[]> {
+  await assertUnlocked(
+    db,
+    items.flatMap((i) => entriesOf(i.draft)),
+  );
   const txRows: (typeof transactions.$inferInsert)[] = [];
   const postingRows: (typeof postings.$inferInsert)[] = [];
   for (const { draft, meta = {} } of items) {
@@ -120,6 +134,7 @@ export async function createTransaction(db: Db, draft: TransactionDraft, meta?: 
 export async function updateTransaction(db: Db, id: string, draft: TransactionDraft) {
   validateTransaction(draft);
   await db.transaction(async (tx) => {
+    await assertUnlocked(tx, [...(await postingDates(tx, [id])), ...entriesOf(draft)]);
     await tx
       .update(transactions)
       .set({
@@ -138,6 +153,7 @@ export async function updateTransaction(db: Db, id: string, draft: TransactionDr
 
 export async function deleteTransactions(db: DbOrTx, ids: readonly string[]): Promise<void> {
   if (ids.length === 0) return;
+  await assertUnlocked(db, await postingDates(db, ids));
   await db.delete(transactions).where(inArray(transactions.id, [...ids]));
 }
 

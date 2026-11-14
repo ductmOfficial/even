@@ -3,16 +3,21 @@ import { sql } from "drizzle-orm";
 import type { Db } from "./client";
 import {
   accounts,
+  auditLog,
   categories,
   importBatches,
+  periods,
   postings,
   rules,
   settings,
+  statementLines,
+  statements,
   transactions,
 } from "./schema";
 import { ensureSeed } from "./seed";
 
-export const BACKUP_VERSION = 1;
+/** 2 adds statements, statement lines, periods and the audit log. */
+export const BACKUP_VERSION = 2;
 
 /** Backups written before the app was named Even carry `app: "ledgr"`. */
 const BACKUP_APPS: readonly unknown[] = ["even", "ledgr"];
@@ -28,12 +33,16 @@ export interface Backup {
     postings: (typeof postings.$inferSelect)[];
     rules: (typeof rules.$inferSelect)[];
     importBatches: (typeof importBatches.$inferSelect)[];
+    statements?: (typeof statements.$inferSelect)[];
+    statementLines?: (typeof statementLines.$inferSelect)[];
+    periods?: (typeof periods.$inferSelect)[];
+    auditLog?: (typeof auditLog.$inferSelect)[];
     settings: (typeof settings.$inferSelect)[];
   };
 }
 
 export async function exportBackup(db: Db): Promise<Backup> {
-  const [a, c, t, p, r, b, s] = await Promise.all([
+  const [a, c, t, p, r, b, s, st, sl, pe, au] = await Promise.all([
     db.select().from(accounts),
     db.select().from(categories),
     db.select().from(transactions),
@@ -41,6 +50,10 @@ export async function exportBackup(db: Db): Promise<Backup> {
     db.select().from(rules),
     db.select().from(importBatches),
     db.select().from(settings),
+    db.select().from(statements),
+    db.select().from(statementLines),
+    db.select().from(periods),
+    db.select().from(auditLog),
   ]);
   return {
     app: "even",
@@ -53,6 +66,10 @@ export async function exportBackup(db: Db): Promise<Backup> {
       postings: p,
       rules: r,
       importBatches: b,
+      statements: st,
+      statementLines: sl,
+      periods: pe,
+      auditLog: au,
       settings: s,
     },
   };
@@ -66,7 +83,7 @@ export function isBackup(value: unknown): value is Backup {
 
 async function wipe(db: Pick<Db, "execute">) {
   await db.execute(
-    sql`truncate table postings, transactions, rules, import_batches, settings, accounts, categories cascade`,
+    sql`truncate table statement_lines, statements, periods, audit_log, postings, transactions, rules, import_batches, settings, accounts, categories cascade`,
   );
 }
 
@@ -89,6 +106,11 @@ export async function restoreBackup(db: Db, backup: Backup): Promise<void> {
     await insertChunked(d.importBatches, (rows) => tx.insert(importBatches).values(rows));
     await insertChunked(d.transactions, (rows) => tx.insert(transactions).values(rows));
     await insertChunked(d.postings, (rows) => tx.insert(postings).values(rows));
+    // Version 1 backups have no statements, periods or audit log.
+    await insertChunked(d.statements ?? [], (rows) => tx.insert(statements).values(rows));
+    await insertChunked(d.statementLines ?? [], (rows) => tx.insert(statementLines).values(rows));
+    await insertChunked(d.periods ?? [], (rows) => tx.insert(periods).values(rows));
+    await insertChunked(d.auditLog ?? [], (rows) => tx.insert(auditLog).values(rows));
     await ensureSeed(tx);
   });
 }
