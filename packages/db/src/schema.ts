@@ -1,4 +1,10 @@
-import { ACCOUNT_TYPES, CURRENCIES, TRANSACTION_KINDS } from "@even/domain";
+import {
+  ACCOUNT_TYPES,
+  CURRENCIES,
+  RECURRING_KINDS,
+  TRANSACTION_KINDS,
+  type Share,
+} from "@even/domain";
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -23,6 +29,7 @@ export const categoryKind = pgEnum("category_kind", ["expense", "income"]);
 export const categoryNature = pgEnum("category_nature", ["fixed", "variable"]);
 export const categoryBucket = pgEnum("category_bucket", ["need", "want", "save"]);
 export const ruleMatchType = pgEnum("rule_match_type", ["contains", "regex"]);
+export const recurringKind = pgEnum("recurring_kind", RECURRING_KINDS);
 export const statementKind = pgEnum("statement_kind", ["tcb-account", "tcb-credit-card"]);
 /**
  * new: not in the ledger yet · matched: an existing transaction covers it · created: imported as
@@ -249,6 +256,28 @@ export const auditLog = pgTable(
   (t) => [index("audit_log_at_idx").on(t.at)],
 );
 
+/** Payments that come back every month (rent, salary, subscriptions). */
+export const recurringTemplates = pgTable("recurring_templates", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  kind: recurringKind("kind").notNull(),
+  dayOfMonth: integer("day_of_month").notNull(),
+  accountId: text("account_id")
+    .notNull()
+    .references(() => accounts.id),
+  toAccountId: text("to_account_id").references(() => accounts.id),
+  categoryId: text("category_id").references(() => categories.id),
+  amount: bigint("amount", { mode: "number" }).notNull(),
+  shares: jsonb("shares")
+    .$type<Share[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  startMonth: text("start_month").notNull(),
+  endMonth: text("end_month"),
+  active: boolean("active").notNull().default(true),
+  ...timestamps,
+});
+
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),
@@ -267,3 +296,5 @@ export type Statement = typeof statements.$inferSelect;
 export type StatementLineRow = typeof statementLines.$inferSelect;
 export type Period = typeof periods.$inferSelect;
 export type AuditEntry = typeof auditLog.$inferSelect;
+export type RecurringTemplate = typeof recurringTemplates.$inferSelect;
+export type NewRecurringTemplate = typeof recurringTemplates.$inferInsert;

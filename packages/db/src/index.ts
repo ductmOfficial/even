@@ -7,6 +7,7 @@ export * from "./demo";
 export * from "./imports";
 export * from "./migrate";
 export * from "./periods";
+export * from "./recurring";
 export * from "./reports";
 export * from "./rules";
 export * from "./schema";

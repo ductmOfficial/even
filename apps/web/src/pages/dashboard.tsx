@@ -24,7 +24,7 @@ import {
   Skeleton,
 } from "@even/ui";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { CircleAlertIcon, FileSpreadsheetIcon, PlusIcon } from "lucide-react";
+import { CalendarClockIcon, CircleAlertIcon, FileSpreadsheetIcon, PlusIcon } from "lucide-react";
 import { useMemo } from "react";
 
 import { DueBadge } from "../components/card-status";
@@ -37,6 +37,7 @@ import {
   useLookups,
   useMonthlyTotals,
   useNeedsReviewCount,
+  usePendingRecurring,
   useNetWorth,
 } from "../data/queries";
 import { useUi } from "../lib/store";
@@ -92,6 +93,8 @@ export function DashboardPage() {
   const balances = useBalances(asOf);
   const review = useNeedsReviewCount();
   const cards = useCards();
+  const recurring = usePendingRecurring();
+  const recurringCount = recurring.data?.length ?? 0;
   const dueCards = (cards.data ?? []).filter(
     (c) => c.status.state === "due" || c.status.state === "overdue",
   );
@@ -165,6 +168,19 @@ export function DashboardPage() {
             <strong>{review.data}</strong> giao dịch cần duyệt danh mục
           </span>
           <span className="ml-auto font-medium text-primary">Duyệt ngay →</span>
+        </Link>
+      ) : null}
+
+      {recurringCount > 0 ? (
+        <Link
+          to="/recurring"
+          className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm hover:bg-muted"
+        >
+          <CalendarClockIcon className="size-4 text-primary" aria-hidden />
+          <span>
+            <strong>{recurringCount}</strong> khoản định kỳ đến hạn chưa ghi nhận
+          </span>
+          <span className="ml-auto font-medium text-primary">Xem lịch →</span>
         </Link>
       ) : null}
 

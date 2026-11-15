@@ -15,6 +15,13 @@
       "when": 1794699250885,
       "tag": "0001_statements",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794700444521,
+      "tag": "0002_recurring",
+      "breakpoints": true
     }
   ]
 }
