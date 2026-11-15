@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/ductmOfficial/even/actions/workflows/ci.yml/badge.svg)](https://github.com/ductmOfficial/even/actions/workflows/ci.yml)
 
-A local-first personal finance ledger for Vietnamese households: double-entry bookkeeping, multiple currencies, shared expenses and debts, and an import for a hand-kept Excel workbook. The whole database (Postgres, through PGlite/WASM) runs in a Web Worker in the browser, so the app works offline and financial data never leaves the device.
+A local-first personal finance ledger for Vietnamese households: double-entry bookkeeping, multiple currencies, shared expenses and debts, an import for a hand-kept Excel workbook, and reconciliation against bank statements. The whole database (Postgres, through PGlite/WASM) runs in a Web Worker in the browser, so the app works offline and financial data never leaves the device.
 
-> Status: **P0 (foundation) and P1 (replace the spreadsheet) done.** Runs locally; not deployed yet. See [PROGRESS.md](PROGRESS.md).
+> Status: **P0 (foundation), P1 (replace the spreadsheet) and P2 (statements and reconciliation) done.** Runs locally; not deployed yet. See [PROGRESS.md](PROGRESS.md).
 
 ## Highlights
 
@@ -13,6 +13,8 @@ A local-first personal finance ledger for Vietnamese households: double-entry bo
 - **Money as integers.** Amounts are stored in minor units (đồng, cent) with a safe-integer guard. VND input accepts `120k`, `1,5tr`, `1.234.567` ([ADR 0003](docs/adr/0003-money-as-integers.md)).
 - **Multi-level categories.** Based on Plaid's Personal Finance Categories, localized, with no depth limit and fixed/variable and 50/30/20 attributes ([ADR 0004](docs/adr/0004-category-taxonomy.md)).
 - **Excel import.** Reads monthly sheets in a worker, maps the payment source from the Note column to accounts, splits broad old categories by description, and is idempotent (importing a file twice adds nothing). Ambiguous rows land in a review queue.
+- **Bank statements, reconciled.** Reads Techcombank account and credit card statements (PDF) in the browser with pdf.js, checks their running balances, matches each line to the ledger, pairs transfers between your own accounts and drafts the rest from the rules. When the balances agree, the period is locked: earlier transactions on that account can no longer change ([ADR 0007](docs/adr/0007-statement-reconciliation.md)).
+- **Credit cards and recurring items.** Each card shows the statement balance, what is left to pay, the minimum, days to the due date, the limit in use and the cashback of the period. Rent and other monthly items create their transactions on the due day, shared with others where needed, on a month calendar next to the card due dates.
 - **Keyboard first.** `N` adds a transaction, `⌘K` opens the command palette, and a quick-entry line parses `grab 120k 4321 hôm qua`. A rule engine suggests the category as you type.
 - **Accessible, light and dark.** Forms, dialogs, tabs and the transaction table come from [Sen UI](https://github.com/ductmOfficial/sen-ui), themed through its tokens ([ADR 0006](docs/adr/0006-ui-on-sen-ui.md)). Every screen is checked with axe against WCAG 2.2 AA in both themes.
 - **Built to scale.** The transaction table is virtualized, routes are code-split, and the PGlite runtime stays out of the main bundle.
@@ -24,7 +26,7 @@ A local-first personal finance ledger for Vietnamese households: double-entry bo
 | Monorepo | pnpm workspaces, Turborepo (from [`ductran-starter`](https://github.com/ductmOfficial/ductran-starter)) |
 | Language | TypeScript 6 (strict), Node.js 24                                                                       |
 | App      | React 19, Vite 8, TanStack Router (type-safe search params), TanStack Query, Zustand                    |
-| Data     | PGlite (Postgres WASM) in a Web Worker, Drizzle ORM, drizzle-kit migrations                             |
+| Data     | PGlite (Postgres WASM) in a Web Worker, Drizzle ORM, drizzle-kit migrations, pdf.js for statements      |
 | UI       | Sen UI (React Aria), Tailwind CSS v4, cmdk, sonner, lucide; app components in `@even/ui` (Storybook 10) |
 | Forms    | React Hook Form + Zod                                                                                   |
 | Testing  | Vitest 5 (+ fast-check, Testing Library, PGlite in Node), Playwright + axe                              |
@@ -38,7 +40,7 @@ A local-first personal finance ledger for Vietnamese households: double-entry bo
 | `apps/docs`         | `docs`          | Storybook for `@even/ui`                                                       |
 | `packages/domain`   | `@even/domain`  | Pure logic: money, ledger builders, categories, rules, periods, quick entry    |
 | `packages/db`       | `@even/db`      | Drizzle schema, migrations, migrator, repositories, reports, backup, demo data |
-| `packages/parsers`  | `@even/parsers` | Importers: the monthly Excel workbook                                          |
+| `packages/parsers`  | `@even/parsers` | Importers: the monthly Excel workbook, Techcombank PDF statements              |
 | `packages/ui`       | `@even/ui`      | Theme on Sen UI, money, charts, command palette and other app components       |
 | `packages/*-config` | `@repo/*`       | Shared TypeScript, ESLint and Prettier configs                                 |
 
@@ -76,7 +78,7 @@ pnpm dev            # app on http://localhost:3500
 pnpm storybook      # @even/ui on http://localhost:3502
 ```
 
-Open **Cài đặt → Tạo dữ liệu demo** to explore with fictional data, or **Import Excel** to bring in your own workbook. The database is created in the browser on first load and migrated there; there is no migrate or seed command to run.
+Open **Cài đặt → Tạo dữ liệu demo** to explore with fictional data, **Import Excel** to bring in your own workbook, or **Đối soát sao kê** to load bank statements. The database is created in the browser on first load and migrated there; there is no migrate or seed command to run.
 
 To serve the production build:
 
@@ -125,6 +127,7 @@ pnpm e2e
 | `pnpm --filter @even/web preview`                      | Serve the last production build on port 3501                                       |
 | `pnpm --filter @even/db db:generate`                   | Generate a SQL migration after editing `packages/db/src/schema.ts`                 |
 | `pnpm --filter @even/parsers check:legacy <file.xlsx>` | Dry-run an Excel import and print per-sheet totals and the category mapping        |
+| `pnpm --filter @even/parsers check:statements <pdf…>`  | Parse statements (files or folders) and print totals and whether balances add up   |
 
 ## Troubleshooting
 
@@ -141,7 +144,7 @@ pnpm e2e
 
 ## Privacy
 
-Data lives in the browser's IndexedDB (`even`). Excel files are parsed locally in a worker and never uploaded. There is no server yet; use **Cài đặt → Sao lưu** to export a JSON backup. Spreadsheets and CSV files are git-ignored so real data is never committed; test fixtures are generated in code with fictional values.
+Data lives in the browser's IndexedDB (`even`). Excel files and PDF statements are parsed locally and never uploaded. There is no server yet; use **Cài đặt → Sao lưu** to export a JSON backup. Spreadsheets, CSV and PDF files are git-ignored so real data is never committed; test fixtures, statements included, are generated in code with fictional values.
 
 ## License
 
