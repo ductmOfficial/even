@@ -10,6 +10,7 @@ import {
   LayoutDashboardIcon,
   MenuIcon,
   PlusIcon,
+  CalendarClockIcon,
   ScaleIcon,
   SearchIcon,
   SettingsIcon,
@@ -30,6 +31,7 @@ const NAV = [
   { to: "/people", label: "Công nợ", icon: UsersIcon },
   { to: "/categories", label: "Danh mục & luật", icon: TagsIcon },
   { to: "/reconcile", label: "Đối soát sao kê", icon: ScaleIcon },
+  { to: "/recurring", label: "Định kỳ & lịch", icon: CalendarClockIcon },
   { to: "/import", label: "Import Excel", icon: FileSpreadsheetIcon },
   { to: "/settings", label: "Cài đặt", icon: SettingsIcon },
 ] as const;

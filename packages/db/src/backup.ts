@@ -8,6 +8,7 @@ import {
   importBatches,
   periods,
   postings,
+  recurringTemplates,
   rules,
   settings,
   statementLines,
@@ -16,7 +17,7 @@ import {
 } from "./schema";
 import { ensureSeed } from "./seed";
 
-/** 2 adds statements, statement lines, periods and the audit log. */
+/** 2 adds statements, statement lines, periods, the audit log and recurring templates. */
 export const BACKUP_VERSION = 2;
 
 /** Backups written before the app was named Even carry `app: "ledgr"`. */
@@ -37,12 +38,13 @@ export interface Backup {
     statementLines?: (typeof statementLines.$inferSelect)[];
     periods?: (typeof periods.$inferSelect)[];
     auditLog?: (typeof auditLog.$inferSelect)[];
+    recurringTemplates?: (typeof recurringTemplates.$inferSelect)[];
     settings: (typeof settings.$inferSelect)[];
   };
 }
 
 export async function exportBackup(db: Db): Promise<Backup> {
-  const [a, c, t, p, r, b, s, st, sl, pe, au] = await Promise.all([
+  const [a, c, t, p, r, b, s, st, sl, pe, au, rt] = await Promise.all([
     db.select().from(accounts),
     db.select().from(categories),
     db.select().from(transactions),
@@ -54,6 +56,7 @@ export async function exportBackup(db: Db): Promise<Backup> {
     db.select().from(statementLines),
     db.select().from(periods),
     db.select().from(auditLog),
+    db.select().from(recurringTemplates),
   ]);
   return {
     app: "even",
@@ -70,6 +73,7 @@ export async function exportBackup(db: Db): Promise<Backup> {
       statementLines: sl,
       periods: pe,
       auditLog: au,
+      recurringTemplates: rt,
       settings: s,
     },
   };
@@ -83,7 +87,7 @@ export function isBackup(value: unknown): value is Backup {
 
 async function wipe(db: Pick<Db, "execute">) {
   await db.execute(
-    sql`truncate table statement_lines, statements, periods, audit_log, postings, transactions, rules, import_batches, settings, accounts, categories cascade`,
+    sql`truncate table recurring_templates, statement_lines, statements, periods, audit_log, postings, transactions, rules, import_batches, settings, accounts, categories cascade`,
   );
 }
 
@@ -111,6 +115,9 @@ export async function restoreBackup(db: Db, backup: Backup): Promise<void> {
     await insertChunked(d.statementLines ?? [], (rows) => tx.insert(statementLines).values(rows));
     await insertChunked(d.periods ?? [], (rows) => tx.insert(periods).values(rows));
     await insertChunked(d.auditLog ?? [], (rows) => tx.insert(auditLog).values(rows));
+    await insertChunked(d.recurringTemplates ?? [], (rows) =>
+      tx.insert(recurringTemplates).values(rows),
+    );
     await ensureSeed(tx);
   });
 }

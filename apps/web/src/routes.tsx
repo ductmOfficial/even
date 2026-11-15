@@ -21,6 +21,7 @@ const PeoplePage = lazyRouteComponent(() => import("./pages/people"), "PeoplePag
 const CategoriesPage = lazyRouteComponent(() => import("./pages/categories"), "CategoriesPage");
 const ImportPage = lazyRouteComponent(() => import("./pages/import"), "ImportPage");
 const ReconcilePage = lazyRouteComponent(() => import("./pages/reconcile"), "ReconcilePage");
+const RecurringPage = lazyRouteComponent(() => import("./pages/recurring"), "RecurringPage");
 const SettingsPage = lazyRouteComponent(() => import("./pages/settings"), "SettingsPage");
 
 const month = z
@@ -90,6 +91,12 @@ const reconcileRoute = createRoute({
   validateSearch: z.object({ statement: z.string().optional().catch(undefined) }),
   component: ReconcilePage,
 });
+const recurringRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/recurring",
+  validateSearch: z.object({ month }),
+  component: RecurringPage,
+});
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
@@ -105,6 +112,7 @@ const routeTree = rootRoute.addChildren([
   categoriesRoute,
   importRoute,
   reconcileRoute,
+  recurringRoute,
   settingsRoute,
 ]);
 

@@ -5,6 +5,8 @@ import {
   latestStatements,
   getStatement,
   listNewStatementLines,
+  listRecurring,
+  pendingRecurring,
   listPeriods,
   listStatements,
   statementProgress,
@@ -258,4 +260,13 @@ export function useCards() {
     }
     return cards;
   });
+}
+
+export function useRecurring() {
+  return useLedgerQuery(["recurring"], (db) => listRecurring(db));
+}
+
+/** Occurrences of recurring items due by today that are not in the ledger yet. */
+export function usePendingRecurring() {
+  return useLedgerQuery(["recurring-pending"], (db) => pendingRecurring(db, todayIso()));
 }

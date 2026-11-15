@@ -5,6 +5,7 @@ export * from "./ledger";
 export * from "./money";
 export * from "./period";
 export * from "./quick-entry";
+export * from "./recurring";
 export * from "./reconcile";
 export * from "./rules";
 export * from "./text";
