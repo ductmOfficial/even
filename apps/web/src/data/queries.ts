@@ -6,6 +6,7 @@ import {
   getStatement,
   listNewStatementLines,
   listRecurring,
+  openingCheck,
   pendingRecurring,
   listPeriods,
   listStatements,
@@ -203,12 +204,13 @@ export function useReconciliation(statementId: string | undefined) {
         from: addDays(statement.periodFrom, -3),
         to: addDays(statement.periodTo, 3),
       };
-      const [movements, balances, locks, linesAround] = await Promise.all([
+      const [movements, balances, locks, linesAround, opening] = await Promise.all([
         accountMovements(db, window),
         accountBalances(db, statement.periodTo),
         lockedThrough(db, [statement.accountId]),
         // New lines of every account in the window, to find the other side of transfers.
         listNewStatementLines(db, { from: window.from, to: window.to }),
+        openingCheck(db, statement.id),
       ]);
       return {
         statement,
@@ -216,6 +218,7 @@ export function useReconciliation(statementId: string | undefined) {
         ledgerBalance: balances.find((b) => b.accountId === statement.accountId)?.balance ?? 0,
         lockedThrough: locks.get(statement.accountId) ?? null,
         otherNewLines: linesAround.filter((l) => l.accountId !== statement.accountId),
+        opening,
       };
     },
   });

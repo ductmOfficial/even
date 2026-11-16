@@ -1,6 +1,6 @@
 # Progress
 
-> Last updated: 2026-11-15
+> Last updated: 2026-11-16
 >
 > Legend: ✅ done · 🔄 in progress · ⬜ not started
 
@@ -40,12 +40,13 @@ Even is a local-first personal finance ledger. This repo was created from [`duct
 | 17  | Credit card status, due dates and cashback; balances on any day                       | `feat/cards`      | ✅     |
 | 18  | Recurring items and a month calendar                                                  | `feat/recurring`  | ✅     |
 | 19  | ADR 0007, README and this log for P2                                                  | `docs/p2`         | ✅     |
+| 20  | Opening balance from an account's first statement                                     | `feat/opening`    | ✅     |
 
 Each step is a pull request with green `Verify` (and, from step 10, `Browser`) checks, merged with rebase.
 
 ### Tests
 
-130 unit and integration tests (domain 65, db 23, parsers 29, ui 10, web 3) and 10 Playwright tests, including an axe scan of every screen, the add-transaction dialog and the command palette in light and dark themes, and the statement flow from a generated PDF to a locked period.
+131 unit and integration tests (domain 65, db 24, parsers 29, ui 10, web 3) and 11 Playwright tests, including an axe scan of every screen, the add-transaction dialog and the command palette in light and dark themes, and the statement flow from a generated PDF to a locked period.
 
 ### Known limitations
 
@@ -80,6 +81,7 @@ Each step is a pull request with green `Verify` (and, from step 10, `Browser`) c
 | Statement lines stored apart from the ledger, with a unique key     | Loading the same or an overlapping statement adds nothing; the ledger keeps categories, splits and debts                                  |
 | Match within 3 days, pair transfers within 2 days                   | Card transactions post a day or two after they happen; transfers between own accounts land the same or next day                           |
 | Locks enforced in the repository, not only in the UI                | Every write path (form, Excel import, statements, recurring items) refuses a change in a closed period                                    |
+| First statement sets the opening balance                            | Excel recorded spending, not balances; the gap before the first line is missing history, not savings interest                             |
 | Cashback counted only from statement lines                          | The bank's figure is the one that counts; no estimate from rates                                                                          |
 | Recurring occurrences as transactions to review, with a stable id   | Creating twice adds nothing, and the statement line matches the occurrence instead of creating a duplicate                                |
 | Dev server on 3500, preview and E2E on 3501, Storybook on 3502      | Runs next to other local projects without port clashes                                                                                    |

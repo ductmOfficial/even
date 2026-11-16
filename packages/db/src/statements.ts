@@ -1,11 +1,19 @@
-import { normalizeText, type TransactionDraft } from "@even/domain";
+import {
+  addDays,
+  buildOpening,
+  normalizeText,
+  OPENING_BALANCE_ACCOUNT_ID,
+  type TransactionDraft,
+} from "@even/domain";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
+import { accountBalances } from "./accounts";
 import { logAudit } from "./audit";
 import { newId, type Db, type DbOrTx } from "./client";
 import { insertTransaction } from "./transactions";
 import {
   accounts,
+  periods,
   postings,
   statementLines,
   statements,
@@ -359,4 +367,74 @@ export async function cardActivity(
       ),
     );
   return { paid: paid?.n ?? 0, cashback: cashback?.n ?? 0 };
+}
+
+export interface OpeningCheck {
+  /** The ledger balance the day before the statement starts. */
+  ledger: number;
+  /** Statement opening balance minus `ledger`. */
+  gap: number;
+  /** No earlier statement and no locked period on the account. */
+  first: boolean;
+}
+
+/** How the ledger stands against a statement's opening balance. */
+export async function openingCheck(db: DbOrTx, statementId: string): Promise<OpeningCheck | null> {
+  const statement = await getStatement(db, statementId);
+  if (!statement) return null;
+  const before = addDays(statement.periodFrom, -1);
+  const [balances, earlier, [locked]] = await Promise.all([
+    accountBalances(db, before),
+    db
+      .select({ id: statements.id })
+      .from(statements)
+      .where(
+        and(
+          eq(statements.accountId, statement.accountId),
+          sql`${statements.periodFrom} < ${statement.periodFrom}`,
+        ),
+      ),
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(periods)
+      .where(eq(periods.accountId, statement.accountId)),
+  ]);
+  const ledger = balances.find((b) => b.accountId === statement.accountId)?.balance ?? 0;
+  return {
+    ledger,
+    gap: statement.openingBalance - ledger,
+    first: earlier.length === 0 && (locked?.n ?? 0) === 0,
+  };
+}
+
+/**
+ * Sets the account's balance on the day before its first statement to the statement's opening
+ * balance, with an opening-balance entry for the difference. For accounts whose history came
+ * from a spreadsheet that recorded spending but never balances.
+ */
+export async function recordOpeningBalance(db: Db, statementId: string): Promise<number> {
+  return db.transaction(async (tx) => {
+    const statement = await getStatement(tx, statementId);
+    const check = await openingCheck(tx, statementId);
+    if (!statement || !check) throw new Error("Không tìm thấy sao kê");
+    if (!check.first) throw new Error("Chỉ ghi số dư đầu kỳ cho sao kê đầu tiên của tài khoản");
+    if (check.gap === 0) return 0;
+    const [account] = await tx
+      .select({ currency: accounts.currency })
+      .from(accounts)
+      .where(eq(accounts.id, statement.accountId));
+    await insertTransaction(
+      tx,
+      buildOpening({
+        date: addDays(statement.periodFrom, -1),
+        accountId: statement.accountId,
+        currency: account?.currency ?? "VND",
+        amount: check.gap,
+        equityAccountId: OPENING_BALANCE_ACCOUNT_ID,
+      }),
+      { source: "statement" },
+    );
+    await logAudit(tx, "reconcile.opening", "statement", statementId, { amount: check.gap });
+    return check.gap;
+  });
 }

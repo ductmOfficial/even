@@ -4,7 +4,12 @@ import { newId, type DbOrTx } from "./client";
 import { auditLog } from "./schema";
 
 export type AuditAction =
-  "statement.import" | "statement.delete" | "period.lock" | "period.unlock" | "reconcile.adjust";
+  | "statement.import"
+  | "statement.delete"
+  | "period.lock"
+  | "period.unlock"
+  | "reconcile.adjust"
+  | "reconcile.opening";
 
 export async function logAudit(
   db: DbOrTx,

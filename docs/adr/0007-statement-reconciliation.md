@@ -19,6 +19,8 @@ Banks send statements as PDFs. Techcombank's account statements and credit card 
 
 **Matching.** A line matches a ledger movement on the same account with the same amount within 3 days, preferring the closest date and the most similar description. Two unmatched lines on the user's own accounts, one out and one in, with the same amount within 2 days, are paired into a transfer. For the rest the app drafts a transaction from the categorization rules; the user accepts, changes the category or ignores the line.
 
+**Opening balance.** An account whose history came from the spreadsheet has spending but no balance, so on its first statement the ledger and the statement disagree before the first line. For the first statement of an account (no earlier statement, no locked period) the app shows that difference and records it as an opening-balance entry the day before the period starts. The savings-pocket adjustment is hidden until then, so the missing history is not booked as interest.
+
 **Gaps.** When the bank's balance and the ledger differ after every line is handled (typically the auto-savings pocket), the user records the difference as a transfer to or from a "Sinh lời" account, instead of an unexplained adjustment to income or expense.
 
 **Closing the period.** When the balances agree, the user locks the account up to the statement's end date. The lock stores the statement and ledger balances. Inserting, editing or deleting any transaction with a posting on that account on or before that date is refused in the repository layer, not only in the UI; locking marks those transactions reconciled and unlocking returns them to cleared. Statement imports and deletions, locks and unlocks are written to an audit log.
