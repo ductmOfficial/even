@@ -6,6 +6,7 @@ import {
   findAccountByNumber,
   insertTransaction,
   lockPeriod,
+  recordOpeningBalance,
   logAudit,
   saveStatement,
   unlockPeriod,
@@ -479,6 +480,11 @@ function ReconcilePanel({ statementId }: { statementId: string }) {
     { success: "Đã ghi bút toán điều chỉnh" },
   );
 
+  const recordOpening = useLedgerMutation(
+    async (db) => (plan ? recordOpeningBalance(db, plan.statement.id) : 0),
+    { success: "Đã ghi số dư đầu kỳ theo sao kê" },
+  );
+
   const lock = useLedgerMutation(
     async (db) => {
       if (!plan || !data.data) return;
@@ -510,6 +516,8 @@ function ReconcilePanel({ statementId }: { statementId: string }) {
   const account: Account | undefined = lookups.accountById.get(statement.accountId);
   const diff = statement.closingBalance - data.data.ledgerBalance;
   const pendingLines = plan.unmatched.length;
+  // On a first statement the gap is usually missing history, not the savings pocket.
+  const openingPending = Boolean(data.data.opening?.first && data.data.opening.gap !== 0);
   const locked = (data.data.lockedThrough ?? "") >= statement.periodTo;
   const transferOptions = accountOptions(lookups.accounts, { people: true }).filter(
     (o) => o.value !== statement.accountId,
@@ -557,6 +565,29 @@ function ReconcilePanel({ statementId }: { statementId: string }) {
               <MoneyText amount={diff} signed tone="auto" className="text-lg font-semibold" />
             )}
           </div>
+          {openingPending && data.data.opening ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm sm:col-span-3">
+              <p className="min-w-0 flex-1">
+                Đây là sao kê đầu tiên của tài khoản. Ngày{" "}
+                {formatDate(addDays(statement.periodFrom, -1))} sổ ghi{" "}
+                <MoneyText amount={data.data.opening.ledger} />, sao kê bắt đầu từ{" "}
+                <MoneyText amount={statement.openingBalance} />. Nếu lịch sử trước đó chỉ ghi chi
+                tiêu (như từ Excel), hãy ghi phần chênh{" "}
+                <MoneyText amount={data.data.opening.gap} signed className="font-medium" /> làm số
+                dư đầu kỳ.
+              </p>
+              <Button
+                variant="secondary"
+                className={buttonClass({ size: "sm" })}
+                disabled={recordOpening.isPending || locked}
+                onClick={() => {
+                  recordOpening.mutate(undefined);
+                }}
+              >
+                Ghi số dư đầu kỳ
+              </Button>
+            </div>
+          ) : null}
           {statement.reportedOpeningBalance !== null ? (
             <p className="text-xs text-muted-foreground sm:col-span-3">
               Số dư đầu kỳ in trên sao kê là <MoneyText amount={statement.reportedOpeningBalance} />
@@ -719,7 +750,7 @@ function ReconcilePanel({ statementId }: { statementId: string }) {
             </>
           ) : (
             <>
-              {diff !== 0 && pendingLines === 0 && account?.type === "bank" ? (
+              {diff !== 0 && pendingLines === 0 && account?.type === "bank" && !openingPending ? (
                 <Button
                   variant="secondary"
                   className={buttonClass()}

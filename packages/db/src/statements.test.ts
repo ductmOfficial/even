@@ -15,6 +15,8 @@ import {
   findAccountByNumber,
   getStatement,
   listStatementLines,
+  openingCheck,
+  recordOpeningBalance,
   saveStatement,
   setLineStatus,
   statementLineKeys,
@@ -342,5 +344,36 @@ describe("credit card activity", () => {
         cashbackTo: "2026-10-20",
       }),
     ).toEqual({ paid: 300_000, cashback: 12_000 });
+  });
+});
+
+describe("opening balance from the first statement", () => {
+  it("sets the balance before the period, once, for an account kept from a spreadsheet", async () => {
+    // Spending imported from a spreadsheet, with no balance: the ledger stands at -300,000.
+    const accountId = await createAccount(db, { name: "Bank", type: "bank" });
+    await createTransaction(db, expense(accountId, "2026-08-10", 300_000));
+    await createTransaction(db, expense(accountId, "2026-09-03", 50_000));
+    const sep = await saveStatement(db, {
+      accountId,
+      statement: statement("2026-09-01", "2026-09-30", [line("2026-09-03", -50_000)]),
+    });
+
+    expect(await openingCheck(db, sep.statementId)).toEqual({
+      ledger: -300_000,
+      gap: 1_300_000,
+      first: true,
+    });
+    expect(await recordOpeningBalance(db, sep.statementId)).toBe(1_300_000);
+    const balances = await accountBalances(db, "2026-09-30");
+    expect(balances.find((b) => b.accountId === accountId)?.balance).toBe(950_000);
+    expect(await openingCheck(db, sep.statementId)).toMatchObject({ gap: 0 });
+    expect((await listAudit(db)).map((a) => a.action)).toContain("reconcile.opening");
+
+    const oct = await saveStatement(db, {
+      accountId,
+      statement: statement("2026-10-01", "2026-10-31", [], { openingBalance: 950_000 }),
+    });
+    expect(await openingCheck(db, oct.statementId)).toMatchObject({ first: false });
+    await expect(recordOpeningBalance(db, oct.statementId)).rejects.toThrow("sao kê đầu tiên");
   });
 });
