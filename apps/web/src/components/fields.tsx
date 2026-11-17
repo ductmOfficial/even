@@ -1,7 +1,7 @@
 import { ComboBox, ComboBoxItem, Select, SelectItem } from "@ductmofficial/sen-ui";
 import { cn } from "@even/ui";
-import type { ReactNode } from "react";
-import { Header, ListBoxSection } from "react-aria-components";
+import { useMemo, useState, type ReactNode } from "react";
+import { Collection, Header, ListBoxSection } from "react-aria-components";
 
 export interface SelectOption {
   value: string;
@@ -101,9 +101,21 @@ export interface TreeFieldProps extends FieldBase {
   options: readonly TreeOption[];
 }
 
+const textOf = (o: TreeOption) => (o.hint ? `${o.hint} › ${o.label}` : o.label);
+
+interface TreeSection {
+  id: string;
+  name: string;
+  items: (TreeOption & { id: string })[];
+}
+
 /**
  * Sen UI's ComboBox for long tree-shaped lists such as categories: type to filter by name or
  * parent, ignoring accents.
+ *
+ * The list is filtered here and passed as `items`. React Aria's built-in filter clones the
+ * collection, and cloning a section header fails in React's development build ("childNodes is
+ * not supported"), which froze the field while typing.
  */
 export function TreeField({
   label,
@@ -114,43 +126,63 @@ export function TreeField({
   className,
   ...props
 }: TreeFieldProps) {
+  const selectedText = useMemo(() => {
+    const selected = options.find((o) => o.value === value);
+    return selected ? textOf(selected) : "";
+  }, [options, value]);
+  // What the user typed; null shows the selected option.
+  const [typed, setTyped] = useState<string | null>(null);
+  const inputValue = typed ?? selectedText;
+  const query = typed === null || typed === selectedText ? "" : fold(typed.trim());
+  const sections = useMemo<TreeSection[]>(
+    () =>
+      groupOptions(options)
+        .map(([group, items]) => ({
+          id: `group:${group}`,
+          name: group,
+          items: (query ? items.filter((o) => fold(textOf(o)).includes(query)) : items).map(
+            (o) => ({ ...o, id: o.value }),
+          ),
+        }))
+        .filter((section) => section.items.length > 0),
+    [options, query],
+  );
+
   return (
     <ComboBox
       {...props}
       label={label}
       emptyText="Không tìm thấy"
+      items={sections}
+      inputValue={inputValue}
+      onInputChange={(text) => {
+        setTyped(text === selectedText ? null : text);
+      }}
       value={value ?? null}
       onChange={(key) => {
+        setTyped(null);
         if (typeof key === "string") onChange(key);
       }}
-      defaultFilter={(text, input) => fold(text).includes(fold(input))}
       menuTrigger="focus"
       className={cn(hideLabel && "[&>:first-child]:sr-only", className)}
     >
-      {groupOptions(options).map(([group, items]) => {
-        const children = items.map((o) => (
-          <ComboBoxItem
-            key={o.value}
-            id={o.value}
-            textValue={o.hint ? `${o.hint} › ${o.label}` : o.label}
-          >
-            <span
-              className={cn((o.depth ?? 0) === 0 && "font-medium")}
-              style={{ paddingInlineStart: `${String((o.depth ?? 0) * 0.75)}rem` }}
-            >
-              {o.label}
-            </span>
-          </ComboBoxItem>
-        ));
-        return group ? (
-          <ListBoxSection key={group} id={`group:${group}`}>
-            <Header className={sectionHeader}>{group}</Header>
-            {children}
-          </ListBoxSection>
-        ) : (
-          children
-        );
-      })}
+      {(section) => (
+        <ListBoxSection id={section.id}>
+          {section.name ? <Header className={sectionHeader}>{section.name}</Header> : null}
+          <Collection items={section.items}>
+            {(o) => (
+              <ComboBoxItem id={o.value} textValue={textOf(o)}>
+                <span
+                  className={cn((o.depth ?? 0) === 0 && "font-medium")}
+                  style={{ paddingInlineStart: `${String((o.depth ?? 0) * 0.75)}rem` }}
+                >
+                  {o.label}
+                </span>
+              </ComboBoxItem>
+            )}
+          </Collection>
+        </ListBoxSection>
+      )}
     </ComboBox>
   );
 }
