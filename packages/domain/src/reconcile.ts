@@ -197,6 +197,19 @@ export function suggestForLine(
     );
     return { kind: "transfer", otherAccountId: target?.id ?? null, reason: `Nạp ví ${wallet}` };
   }
+  // Money back from an e-wallet you track (a Momo withdrawal) is a transfer from that wallet.
+  if (incoming) {
+    const from = context.accounts.find(
+      (a) =>
+        a.type === "ewallet" &&
+        [a.name, ...a.aliases].some((n) => {
+          const name = normalizeText(n);
+          return name.length >= 3 && text.includes(name);
+        }),
+    );
+    if (from)
+      return { kind: "transfer", otherAccountId: from.id, reason: `Rút từ ví ${from.name}` };
+  }
   const holders = (context.holderNames ?? []).map(normalizeText).filter(Boolean);
   if (holders.some((h) => normalizeText(line.counterparty ?? "") === h)) {
     return { kind: "transfer", otherAccountId: null, reason: "Chuyển giữa tài khoản của bạn" };
