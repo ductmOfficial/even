@@ -133,4 +133,19 @@ describe("transaction form mapping", () => {
     expect(row).toMatchObject({ amount: -600_000, people: ["an"], accountLabel: "tcb" });
     expect(toRow(stored(draft), lookups, "tcb").amount).toBe(-1_000_000);
   });
+
+  it("keeps a transaction in the review queue when asked", () => {
+    const draft = buildTransfer({
+      date: "2026-11-01",
+      description: "Rút PayPal",
+      from: { accountId: "paypal", currency: "USD", rate: 26_000 },
+      to: { accountId: "tcb", currency: "VND" },
+      amount: 10_000,
+      toAmount: 2_590_000,
+    });
+    const values = toFormValues(stored(draft), lookups);
+    if (!values) throw new Error("not editable");
+    expect(values.needsReview).toBe(false);
+    expect(toDraft({ ...values, needsReview: true }, lookups, 26_000).needsReview).toBe(true);
+  });
 });

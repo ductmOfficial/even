@@ -42,6 +42,8 @@ const schema = z
   .object({
     mode: z.enum(["expense", "income", "transfer"]),
     refund: z.boolean(),
+    /** Keep the transaction in the review queue after saving. */
+    needsReview: z.boolean(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Chọn ngày"),
     description: z.string().trim().min(1, "Nhập mô tả"),
     note: z.string(),
@@ -95,6 +97,7 @@ function emptyValues(defaults?: {
   return {
     mode: defaults?.mode ?? "expense",
     refund: false,
+    needsReview: false,
     date: todayIso(),
     description: "",
     note: "",
@@ -171,6 +174,10 @@ export function toDraft(
   lookups: Lookups,
   usdRate: number,
 ): TransactionDraft {
+  return { ...buildDraft(v, lookups, usdRate), needsReview: v.needsReview };
+}
+
+function buildDraft(v: TransactionFormValues, lookups: Lookups, usdRate: number): TransactionDraft {
   const account = lookups.accountById.get(v.accountId);
   if (!account) throw new Error("Tài khoản không tồn tại");
   const currency = account.currency;
@@ -495,6 +502,16 @@ function TransactionForm({ lookups, existing, defaults, onDone }: TransactionFor
         />
       ) : null}
 
+      <Controller
+        control={control}
+        name="needsReview"
+        render={({ field }) => (
+          <Checkbox isSelected={field.value} onChange={field.onChange}>
+            Để lại trong danh sách cần duyệt
+          </Checkbox>
+        )}
+      />
+
       {mode === "expense" ? (
         <Controller
           control={control}
@@ -630,9 +647,7 @@ function TransactionForm({ lookups, existing, defaults, onDone }: TransactionFor
             <Trash2Icon /> Xoá
           </Button>
         ) : null}
-        {existing?.needsReview ? (
-          <span className="mr-auto text-xs text-muted-foreground">Lưu sẽ đánh dấu là đã duyệt</span>
-        ) : null}
+
         <Button variant="secondary" onClick={onDone}>
           Huỷ
         </Button>
