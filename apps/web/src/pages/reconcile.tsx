@@ -36,6 +36,7 @@ import {
   CardTitle,
   EmptyState,
   MoneyText,
+  SegmentedControl,
   Skeleton,
   toast,
 } from "@even/ui";
@@ -619,7 +620,7 @@ function ReconcilePanel({ statementId }: { statementId: string }) {
             return (
               <div
                 key={line.id}
-                className="grid items-end gap-3 rounded-lg border p-3 lg:grid-cols-[7rem_1fr_9rem_18rem_auto]"
+                className="grid items-end gap-3 rounded-lg border p-3 lg:grid-cols-[7rem_1fr_9rem_20rem_auto]"
               >
                 <span className="text-sm text-muted-foreground tabular-nums">
                   {formatDate(line.date)}
@@ -641,27 +642,67 @@ function ReconcilePanel({ statementId }: { statementId: string }) {
                     Chuyển tiền với {lookups.accountById.get(other.accountId)?.name} (
                     {formatDate(other.date)})
                   </span>
-                ) : s?.kind === "transfer" ? (
-                  <SelectField
-                    label={`Tài khoản đối ứng cho dòng ${formatDate(line.date)}`}
-                    hideLabel
-                    placeholder="Chọn tài khoản đối ứng"
-                    value={s.otherAccountId ?? undefined}
-                    onChange={(v) => {
-                      set({ suggestion: { ...s, otherAccountId: v } });
-                    }}
-                    options={transferOptions}
-                  />
                 ) : s ? (
-                  <TreeField
-                    label={`Danh mục cho dòng ${formatDate(line.date)}`}
-                    hideLabel
-                    value={s.categoryId}
-                    onChange={(v) => {
-                      set({ suggestion: { ...s, categoryId: v, confident: true } });
-                    }}
-                    options={categoryOptions(lookups.categories)}
-                  />
+                  <div className="grid gap-2">
+                    <SegmentedControl
+                      aria-label={`Loại cho dòng ${formatDate(line.date)}`}
+                      value={s.kind === "transfer" ? "transfer" : "category"}
+                      onChange={(v) => {
+                        if (v === "transfer") {
+                          set({
+                            suggestion: {
+                              kind: "transfer",
+                              otherAccountId: null,
+                              reason: s.reason,
+                            },
+                          });
+                        } else {
+                          set({
+                            suggestion: {
+                              kind: line.amount > 0 ? "income" : "expense",
+                              categoryId:
+                                line.amount > 0 ? "income.other_income" : "other.uncategorized",
+                              confident: false,
+                              reason: s.reason,
+                            },
+                          });
+                        }
+                      }}
+                      options={[
+                        { value: "category", label: line.amount > 0 ? "Thu / hoàn" : "Chi tiêu" },
+                        { value: "transfer", label: "Chuyển tiền" },
+                      ]}
+                    />
+                    {s.kind === "transfer" ? (
+                      <SelectField
+                        label={`Tài khoản đối ứng cho dòng ${formatDate(line.date)}`}
+                        hideLabel
+                        placeholder="Chọn tài khoản đối ứng"
+                        value={s.otherAccountId ?? undefined}
+                        onChange={(v) => {
+                          set({ suggestion: { ...s, otherAccountId: v } });
+                        }}
+                        options={transferOptions}
+                      />
+                    ) : (
+                      <TreeField
+                        label={`Danh mục cho dòng ${formatDate(line.date)}`}
+                        hideLabel
+                        value={s.categoryId}
+                        onChange={(v) => {
+                          // Money in on an expense category is a refund that lowers that cost.
+                          const kind =
+                            line.amount < 0
+                              ? "expense"
+                              : lookups.categoryById.get(v)?.kind === "expense"
+                                ? "refund"
+                                : "income";
+                          set({ suggestion: { ...s, kind, categoryId: v, confident: true } });
+                        }}
+                        options={categoryOptions(lookups.categories)}
+                      />
+                    )}
+                  </div>
                 ) : (
                   <span />
                 )}

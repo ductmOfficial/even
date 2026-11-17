@@ -146,6 +146,15 @@ describe("suggestForLine", () => {
     });
   });
 
+  it("treats money back from a tracked e-wallet as a transfer from it", () => {
+    expect(suggest(84_000, "SPAY RUT TIEN VE TAI KHOAN")).toMatchObject({
+      kind: "transfer",
+      otherAccountId: "wallet",
+    });
+    // Paying through the wallet's gateway stays an expense.
+    expect(suggest(-84_000, "SPAY THANH TOAN DON HANG")).toMatchObject({ kind: "expense" });
+  });
+
   it("falls back to the category rules", () => {
     expect(suggest(-65_000, "Highlands Coffee HCM")).toMatchObject({
       kind: "expense",
