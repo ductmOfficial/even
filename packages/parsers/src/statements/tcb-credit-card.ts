@@ -48,9 +48,20 @@ function summaryValues(lines: readonly PdfLine[]): string[] {
 }
 
 /** "18/09/2026" statement → "2026-08-19": the day after the same date a month earlier. */
-function cycleStart(statementDate: string): string {
-  const month = addMonths(statementDate.slice(0, 7), -1);
-  return addDays(`${month}-${statementDate.slice(8)}`, 1);
+/**
+ * The first day of the billing cycle. The statement prints only its own date, so the cycle is
+ * taken to start the day after the same date a month earlier, or on the earliest posting date on
+ * the statement if that is sooner: Techcombank moves the statement date (18 September, then
+ * 20 October), and the next statement then carries lines posted on 19 and 20 September.
+ */
+function cycleStart(statementDate: string, lines: readonly StatementLine[]): string {
+  const [y = 0, m = 1] = addMonths(statementDate.slice(0, 7), -1).split("-").map(Number);
+  const day = Math.min(Number(statementDate.slice(8)), new Date(Date.UTC(y, m, 0)).getUTCDate());
+  const sameDayLastMonth = `${String(y)}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const posted = lines.map((l) => l.postDate ?? l.date).filter(Boolean);
+  const earliest = posted.length ? posted.reduce((a, b) => (b < a ? b : a)) : null;
+  const start = addDays(sameDayLastMonth, 1);
+  return earliest && earliest < start ? earliest : start;
 }
 
 export function parseTcbCreditCardStatement(tokens: readonly PdfToken[]): ParsedStatement {
@@ -131,7 +142,7 @@ export function parseTcbCreditCardStatement(tokens: readonly PdfToken[]): Parsed
     accountNumber,
     holder,
     currency: "VND",
-    periodFrom: cycleStart(statementDate),
+    periodFrom: cycleStart(statementDate, statementLines),
     periodTo: statementDate,
     openingBalance,
     reportedOpeningBalance: null,

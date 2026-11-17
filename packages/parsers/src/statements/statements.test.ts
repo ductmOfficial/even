@@ -225,6 +225,34 @@ describe("Techcombank credit card statement", () => {
     });
   });
 
+  it("starts the cycle at the earliest posting when the statement date moved", () => {
+    const moved = parseStatement(
+      creditCardStatementTokens({
+        account: "1111222233334444",
+        holder: "NGUYEN VAN A",
+        statementDate: "20/10/2026",
+        limit: "50,000,000",
+        summary: ["-100,000", "50,000", "0", "-150,000", "7,500", "17:00 15/11/2026"],
+        perPage: 1,
+        rows: [
+          {
+            date: "18/09/2026",
+            post: "19/09/2026",
+            original: "50,000.00 VND",
+            debit: "50,000",
+            description: ["Giao dịch thanh toán/Purchase - Số", "Thẻ/Card No: 4000...0001", "SHOP"],
+          },
+        ],
+      }),
+    );
+    // Without the posting, the cycle would start on 21 September and miss it.
+    expect(moved).toMatchObject({
+      periodFrom: "2026-09-19",
+      periodTo: "2026-10-20",
+      balanced: true,
+    });
+  });
+
   it("reads purchases, payments, foreign amounts and fees without a transaction date", () => {
     expect(statement.lines.map((l) => l.amount)).toEqual([
       -200_000, 2_000_000, -1_050_000, -26_173, -50_000,
