@@ -1,6 +1,6 @@
 # Progress
 
-> Last updated: 2026-11-16
+> Last updated: 2026-11-17
 >
 > Legend: ✅ done · 🔄 in progress · ⬜ not started
 
@@ -19,34 +19,35 @@ Even is a local-first personal finance ledger. This repo was created from [`duct
 
 ## Steps
 
-| #   | Step                                                                                  | Branch            | Status |
-| --- | ------------------------------------------------------------------------------------- | ----------------- | ------ |
-| 1   | Repository from the `ductran-starter` template                                        | `main`            | ✅     |
-| 2   | Rename to `even`, drop the sample package and the local PostgreSQL                    | `chore/setup`     | ✅     |
-| 3   | `@even/domain`: money, double-entry builders, categories, rules, periods, quick entry | `feat/domain`     | ✅     |
-| 4   | `@even/db`: Drizzle schema, migrator, PGlite in Node for tests, backup, demo data     | `feat/db`         | ✅     |
-| 5   | `@even/parsers`: monthly Excel workbook import                                        | `feat/parsers`    | ✅     |
-| 6   | `@even/ui`: theme on Sen UI, money, charts, command palette; Storybook                | `feat/ui`         | ✅     |
-| 7   | The app: PGlite worker, overview, transactions, accounts, debts, settings, ⌘K         | `feat/web`        | ✅     |
-| 8   | Categories and rules screen                                                           | `feat/categories` | ✅     |
-| 9   | Excel import screen with a review queue                                               | `feat/import`     | ✅     |
-| 10  | Playwright and axe tests, `Browser` job in CI                                         | `test/e2e`        | ✅     |
-| 11  | README, ADRs and this progress log                                                    | `docs/readme`     | ✅     |
-| 12  | Techcombank account and credit card statements from PDF, with balance checks          | `feat/statements` | ✅     |
-| 13  | Statements, statement lines, period locks and an audit log in the database            | `feat/db-periods` | ✅     |
-| 14  | Matching statement lines, pairing transfers, drafting entries from rules              | `feat/matching`   | ✅     |
-| 15  | Readable toasts (contrast)                                                            | `fix/toast`       | ✅     |
-| 16  | Statement import and reconciliation screen, closing a period                          | `feat/reconcile`  | ✅     |
-| 17  | Credit card status, due dates and cashback; balances on any day                       | `feat/cards`      | ✅     |
-| 18  | Recurring items and a month calendar                                                  | `feat/recurring`  | ✅     |
-| 19  | ADR 0007, README and this log for P2                                                  | `docs/p2`         | ✅     |
-| 20  | Opening balance from an account's first statement                                     | `feat/opening`    | ✅     |
+| #   | Step                                                                                         | Branch                   | Status |
+| --- | -------------------------------------------------------------------------------------------- | ------------------------ | ------ |
+| 1   | Repository from the `ductran-starter` template                                               | `main`                   | ✅     |
+| 2   | Rename to `even`, drop the sample package and the local PostgreSQL                           | `chore/setup`            | ✅     |
+| 3   | `@even/domain`: money, double-entry builders, categories, rules, periods, quick entry        | `feat/domain`            | ✅     |
+| 4   | `@even/db`: Drizzle schema, migrator, PGlite in Node for tests, backup, demo data            | `feat/db`                | ✅     |
+| 5   | `@even/parsers`: monthly Excel workbook import                                               | `feat/parsers`           | ✅     |
+| 6   | `@even/ui`: theme on Sen UI, money, charts, command palette; Storybook                       | `feat/ui`                | ✅     |
+| 7   | The app: PGlite worker, overview, transactions, accounts, debts, settings, ⌘K                | `feat/web`               | ✅     |
+| 8   | Categories and rules screen                                                                  | `feat/categories`        | ✅     |
+| 9   | Excel import screen with a review queue                                                      | `feat/import`            | ✅     |
+| 10  | Playwright and axe tests, `Browser` job in CI                                                | `test/e2e`               | ✅     |
+| 11  | README, ADRs and this progress log                                                           | `docs/readme`            | ✅     |
+| 12  | Techcombank account and credit card statements from PDF, with balance checks                 | `feat/statements`        | ✅     |
+| 13  | Statements, statement lines, period locks and an audit log in the database                   | `feat/db-periods`        | ✅     |
+| 14  | Matching statement lines, pairing transfers, drafting entries from rules                     | `feat/matching`          | ✅     |
+| 15  | Readable toasts (contrast)                                                                   | `fix/toast`              | ✅     |
+| 16  | Statement import and reconciliation screen, closing a period                                 | `feat/reconcile`         | ✅     |
+| 17  | Credit card status, due dates and cashback; balances on any day                              | `feat/cards`             | ✅     |
+| 18  | Recurring items and a month calendar                                                         | `feat/recurring`         | ✅     |
+| 19  | ADR 0007, README and this log for P2                                                         | `docs/p2`                | ✅     |
+| 20  | Opening balance from an account's first statement                                            | `feat/opening`           | ✅     |
+| 21  | Fixes from the first real reconciliation: category field, review flag, line kind, card cycle | `fix/reconcile-feedback` | ✅     |
 
 Each step is a pull request with green `Verify` (and, from step 10, `Browser`) checks, merged with rebase.
 
 ### Tests
 
-131 unit and integration tests (domain 65, db 24, parsers 29, ui 10, web 3) and 11 Playwright tests, including an axe scan of every screen, the add-transaction dialog and the command palette in light and dark themes, and the statement flow from a generated PDF to a locked period.
+134 unit and integration tests (domain 66, db 24, parsers 30, ui 10, web 4) and 11 Playwright tests, including an axe scan of every screen, the add-transaction dialog and the command palette in light and dark themes, and the statement flow from a generated PDF to a locked period.
 
 ### Known limitations
 
@@ -111,3 +112,5 @@ Each step is a pull request with green `Verify` (and, from step 10, `Browser`) c
 - **2026-11-14:** importing pdf.js's worker module inside the app's own worker made it answer the app's messages. pdf.js now runs on the main thread with its own worker, loaded on demand.
 - **2026-11-14:** sonner's rich colors failed the contrast check for toasts. Toasts use the plain style.
 - **2026-11-15:** the calendar's filled "today" marker failed contrast in the dark theme; it is an outline now.
+- **2026-11-17:** typing in the category field threw "childNodes is not supported" in React's development build only, and the field froze. React Aria's built-in filter clones the collection and fails on section headers; the field now filters its own items.
+- **2026-11-17:** Techcombank moved a card's statement date from the 18th to the 20th, so lines posted on the 19th fell between two cycles. A cycle now starts at the earliest posting on its statement when that is sooner than a month before.
