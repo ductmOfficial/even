@@ -21,7 +21,7 @@
   "dependencies": {
     "@e965/xlsx": "^0.20.3",
     "@even/domain": "workspace:*",
-    "pdfjs-dist": "^5.7.284"
+    "pdfjs-dist": "^6.5.438"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
