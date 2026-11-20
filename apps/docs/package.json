@@ -12,7 +12,7 @@
   "dependencies": {
     "@ductmofficial/sen-ui": "^0.5.0",
     "@even/ui": "workspace:*",
-    "lucide-react": "^1.70.0",
+    "lucide-react": "^1.73.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
@@ -24,7 +24,7 @@
     "@tailwindcss/vite": "^4.3.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "eslint": "^10.13.0",
+    "eslint": "^10.15.0",
     "eslint-plugin-storybook": "^10.6.5",
     "storybook": "^10.6.5",
     "tailwindcss": "^4.3.5",
